@@ -1,6 +1,6 @@
 mod days;
 
-const DAY_FUNCS: [fn() -> (); 1] = [days::day_01::day_01];
+const DAY_FUNCS: [fn() -> (); 2] = [days::day_01::day_01, days::day_02::day_02];
 
 fn main() {
     let day_arg: usize = std::env::args()
