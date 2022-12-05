@@ -41,57 +41,92 @@ use super::load_file;
 /// strategy guide, you would get a total score of 15 (8 + 1 + 6).
 ///
 /// What would your total score be if everything goes exactly according to your strategy guide?
+/// --- Part Two ---
+/// The Elf finishes helping with the tent and sneaks back over to you. "Anyway, the second column
+/// says how the round needs to end: X means you need to lose, Y means you need to end the round in
+/// a draw, and Z means you need to win. Good luck!"
+///
+/// The total score is still calculated in the same way, but now you need to figure out what shape
+/// to choose so the round ends as indicated. The example above now goes like this:
+///
+/// In the first round, your opponent will choose Rock (A), and you need the round to end in a draw
+/// (Y), so you also choose Rock. This gives you a score of 1 + 3 = 4. In the second round, your
+/// opponent will choose Paper (B), and you choose Rock so you lose (X) with a score of 1 + 0 = 1.
+/// In the third round, you will defeat your opponent's Scissors with Rock for a score of 1 + 6 = 7.
+/// Now that you're correctly decrypting the ultra top secret strategy guide, you would get a total
+/// score of 12.
+///
+/// Following the Elf's instructions for the second column, what would your total score be if
+/// everything goes exactly according to your strategy guide?
 pub fn day_02() {
     let data = load_file(2);
     let data_as_lines = data.split("\n");
 
-    let score = data_as_lines.into_iter().fold(0u64, |mut acc, val| {
+    let mut acc_part_1 = 0u64;
+    let mut acc_part_2 = 0u64;
+
+    data_as_lines.into_iter().for_each(|val| {
         if let Some((elf_move, my_move)) = val.trim().split_once(" ") {
             match (elf_move, my_move) {
                 // Rock vs rock
+                // Rock, lose
                 ("A", "X") => {
-                    acc += 1 + 3;
+                    acc_part_1 += 1 + 3;
+                    acc_part_2 += 3 + 0;
                 }
                 // Rock vs paper
+                // Rock, draw
                 ("A", "Y") => {
-                    acc += 2 + 6;
+                    acc_part_1 += 2 + 6;
+                    acc_part_2 += 1 + 3;
                 }
                 // Rock vs scissors
+                // Rock, win
                 ("A", "Z") => {
-                    acc += 3 + 0;
+                    acc_part_1 += 3 + 0;
+                    acc_part_2 += 2 + 6;
                 }
                 // Paper vs rock
+                // Paper, lose
                 ("B", "X") => {
-                    acc += 1 + 0;
+                    acc_part_1 += 1 + 0;
+                    acc_part_2 += 1 + 0;
                 }
                 // Paper vs paper
+                // Paper, draw
                 ("B", "Y") => {
-                    acc += 2 + 3;
+                    acc_part_1 += 2 + 3;
+                    acc_part_2 += 2 + 3;
                 }
                 // Paper vs scissors
+                // Paper, win
                 ("B", "Z") => {
-                    acc += 3 + 6;
+                    acc_part_1 += 3 + 6;
+                    acc_part_2 += 3 + 6;
                 }
                 // Scissors vs rock
+                // Scissors, lose
                 ("C", "X") => {
-                    acc += 1 + 6;
+                    acc_part_1 += 1 + 6;
+                    acc_part_2 += 2 + 0;
                 }
                 // Scissors vs paper
+                // Scissors, draw
                 ("C", "Y") => {
-                    acc += 2 + 0;
+                    acc_part_1 += 2 + 0;
+                    acc_part_2 += 3 + 3;
                 }
                 // Scissors vs scissors
+                // Scissors, win
                 ("C", "Z") => {
-                    acc += 3 + 3;
+                    acc_part_1 += 3 + 3;
+                    acc_part_2 += 1 + 6;
                 }
                 (_, _) => unreachable!(),
             }
-
-            acc
-        } else {
-            acc
         }
     });
 
-    println!("Part 1: {score}");
+    println!("Part 1: {acc_part_1}");
+    println!("Part 2: {acc_part_2}");
 }
