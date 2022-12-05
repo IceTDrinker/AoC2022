@@ -69,38 +69,37 @@ use super::load_file;
 /// in total?
 pub fn day_01() {
     let data = load_file(1);
-    let data_as_lines = data.split("\n");
+    let data_per_elf = data.split("\n\n");
 
     // Max heap once I got to part 2, before was storing max value as I went
     let mut max_heap = std::collections::BinaryHeap::new();
 
-    let mut lines_iter = data_as_lines.into_iter().peekable();
+    for elf_data in data_per_elf {
+        let elf_data_as_lines = elf_data.split("\n");
 
-    while lines_iter.peek().is_some() {
         let mut current_calories = 0u64;
 
-        loop {
-            if let Some(line) = lines_iter.next() {
-                let value: Result<u64, _> = line.parse();
-                match value {
-                    Ok(value) => current_calories += value,
-                    _ => {
-                        max_heap.push(current_calories);
-                        break;
-                    }
+        for line in elf_data_as_lines {
+            let value: Result<u64, _> = line.parse();
+            match value {
+                Ok(value) => current_calories += value,
+                _ => {
+                    break;
                 }
-            } else {
-                break;
             }
         }
+        max_heap.push(current_calories);
     }
 
-    // Could have poped 3 times, but I did not like that idea
-    let mut descending_order_vec = max_heap.into_sorted_vec();
-    descending_order_vec.reverse();
+    // We have a max heap, let's actually use it
 
-    let max_calories = descending_order_vec[0];
-    let sum_max_3: u64 = descending_order_vec[..3].iter().sum();
+    let max_calories = max_heap.pop().unwrap();
+
+    let mut sum_max_3 = max_calories;
+
+    for _ in 0..2 {
+        sum_max_3 += max_heap.pop().unwrap()
+    }
 
     println!("Part 1: {max_calories}");
     println!("Part 2: {sum_max_3}");
