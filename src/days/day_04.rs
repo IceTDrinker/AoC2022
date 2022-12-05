@@ -51,11 +51,26 @@ use super::load_file;
 /// In this example, there are 2 such pairs.
 ///
 /// In how many assignment pairs does one range fully contain the other?
+/// --- Part Two ---
+/// It seems like there is still quite a bit of duplicate work planned. Instead, the Elves would
+/// like to know the number of pairs that overlap at all.
+///
+/// In the above example, the first two pairs (2-4,6-8 and 2-3,4-5) don't overlap, while the
+/// remaining four pairs (5-7,7-9, 2-8,3-7, 6-6,4-6, and 2-6,4-8) do overlap:
+///
+/// 5-7,7-9 overlaps in a single section, 7.
+/// 2-8,3-7 overlaps all of the sections 3 through 7.
+/// 6-6,4-6 overlaps in a single section, 6.
+/// 2-6,4-8 overlaps in sections 4, 5, and 6.
+/// So, in this example, the number of overlapping assignment pairs is 4.
+///
+/// In how many assignment pairs do the ranges overlap?
 pub fn day_04() {
     let data = load_file(4);
     let data_as_lines = data.split("\n");
 
     let mut count_part_1 = 0u64;
+    let mut count_part_2 = 0u64;
 
     for line in data_as_lines {
         let trimmed_line = line.trim();
@@ -75,8 +90,13 @@ pub fn day_04() {
             {
                 count_part_1 += 1;
             }
+
+            if !(min_first_elf > max_second_elf || min_second_elf > max_first_elf) {
+                count_part_2 += 1;
+            }
         }
     }
 
     println!("Part 1: {count_part_1}");
+    println!("Part 2: {count_part_2}");
 }
