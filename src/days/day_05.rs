@@ -66,6 +66,57 @@ use super::load_file;
 /// together and give the Elves the message CMZ.
 ///
 /// After the rearrangement procedure completes, what crate ends up on top of each stack?
+///
+/// --- Part Two ---
+/// As you watch the crane operator expertly rearrange the crates, you notice the process isn't
+/// following your prediction.
+///
+/// Some mud was covering the writing on the side of the crane, and you quickly wipe it away. The
+/// crane isn't a CrateMover 9000 - it's a CrateMover 9001.
+///
+/// The CrateMover 9001 is notable for many new and exciting features: air conditioning, leather
+/// seats, an extra cup holder, and the ability to pick up and move multiple crates at once.
+///
+/// Again considering the example above, the crates begin in the same configuration:
+///
+///     [D]    
+/// [N] [C]    
+/// [Z] [M] [P]
+///  1   2   3
+/// Moving a single crate from stack 2 to stack 1 behaves the same as before:
+///
+/// [D]        
+/// [N] [C]    
+/// [Z] [M] [P]
+///  1   2   3
+/// However, the action of moving three crates from stack 1 to stack 3 means that those three moved
+/// crates stay in the same order, resulting in this new configuration:
+///
+///         [D]
+///         [N]
+///     [C] [Z]
+///     [M] [P]
+///  1   2   3
+/// Next, as both crates are moved from stack 2 to stack 1, they retain their order as well:
+///
+///         [D]
+///         [N]
+/// [C]     [Z]
+/// [M]     [P]
+///  1   2   3
+/// Finally, a single crate is still moved from stack 1 to stack 2, but now it's crate C that gets
+/// moved:
+///
+///         [D]
+///         [N]
+///         [Z]
+/// [M] [C] [P]
+///  1   2   3
+/// In this example, the CrateMover 9001 has put the crates in a totally different order: MCD.
+///
+/// Before the rearrangement process finishes, update your simulation so that the Elves know where
+/// they should stand to be ready to unload the final supplies. After the rearrangement procedure
+/// completes, what crate ends up on top of each stack?
 pub fn day_05() {
     let data = load_file(5);
     let (stock, instructions) = data.split_once("\n\n").unwrap();
@@ -87,6 +138,9 @@ pub fn day_05() {
         }
     }
 
+    let mut stacks_part1 = stacks.clone();
+    let mut stacks_part2 = stacks;
+
     for instruction in instructions.trim().split("\n").into_iter() {
         let mut split_instruction = instruction
             .split_whitespace()
@@ -102,14 +156,44 @@ pub fn day_05() {
         let src_stack_idx = src_stack_idx - 1;
         let dst_stack_idx = dst_stack_idx - 1;
 
+        let (src_stack_part2, dst_stack_part2) = {
+            if src_stack_idx < dst_stack_idx {
+                let split_len = src_stack_idx + 1;
+                let (first_half, second_half) = stacks_part2.split_at_mut(split_len);
+                (
+                    &mut first_half[src_stack_idx],
+                    &mut second_half[dst_stack_idx - split_len],
+                )
+            } else {
+                let split_len = dst_stack_idx + 1;
+                let (first_half, second_half) = stacks_part2.split_at_mut(split_len);
+                (
+                    &mut second_half[src_stack_idx - split_len],
+                    &mut first_half[dst_stack_idx],
+                )
+            }
+        };
+
+        let src_stack_len = src_stack_part2.len();
+        let start_drain = src_stack_len - move_count;
+
+        let drained_values = src_stack_part2.drain(start_drain..);
+        dst_stack_part2.extend(drained_values);
+
         for _ in 0..move_count {
-            let value_to_move = stacks[src_stack_idx].pop().unwrap();
-            stacks[dst_stack_idx].push(value_to_move);
+            let value_to_move = stacks_part1[src_stack_idx].pop().unwrap();
+            stacks_part1[dst_stack_idx].push(value_to_move);
         }
     }
 
     print!("Part 1: ");
-    for stack in stacks {
+    for stack in stacks_part1 {
+        print!("{}", stack.last().unwrap());
+    }
+    print!("\n");
+
+    print!("Part 2: ");
+    for stack in stacks_part2 {
         print!("{}", stack.last().unwrap());
     }
     print!("\n");
