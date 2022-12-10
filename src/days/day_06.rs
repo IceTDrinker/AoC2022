@@ -46,27 +46,87 @@ use super::load_file;
 /// nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg: first marker after character 10
 /// zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw: first marker after character 11
 /// How many characters need to be processed before the first start-of-packet marker is detected?
+///
+/// --- Part Two ---
+/// Your device's communication system is correctly detecting packets, but still isn't working. It
+/// looks like it also needs to look for messages.
+///
+/// A start-of-message marker is just like a start-of-packet marker, except it consists of 14
+/// distinct characters rather than 4.
+///
+/// Here are the first positions of start-of-message markers for all of the above examples:
+///
+/// mjqjpqmgbljsphdztnvjfqwrcgsmlb: first marker after character 19
+/// bvwbjplbgvbhsrlpgdmjqwftvncz: first marker after character 23
+/// nppdvjthqldpwncqszvftbrmjlhg: first marker after character 23
+/// nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg: first marker after character 29
+/// zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw: first marker after character 26
+/// How many characters need to be processed before the first start-of-message marker is detected?
 pub fn day_06() {
     let data = load_file(6);
 
-    let mut char_buffer: [char; 4] = Default::default();
+    let mut start_of_packet_buffer: [char; 4] = Default::default();
+    let mut start_of_packet_hash_map =
+        std::collections::HashMap::<char, usize>::with_capacity(start_of_packet_buffer.len());
 
-    let mut hash_set = std::collections::HashSet::<char>::new();
+    let mut start_of_message_buffer: [char; 14] = Default::default();
+    let mut start_of_message_hash_map =
+        std::collections::HashMap::<char, usize>::with_capacity(start_of_message_buffer.len());
 
-    for (buff_dst, c) in char_buffer.iter_mut().zip(data.chars().take(4)) {
-        *buff_dst = c;
+    let mut part1_solution: Option<usize> = None;
+    let mut part2_solution: Option<usize> = None;
+
+    fn find_first_all_different_chars(
+        idx: usize,
+        c: char,
+        buffer: &mut [char],
+        hash_map: &mut std::collections::HashMap<char, usize>,
+    ) -> Option<usize> {
+        let store_idx = idx % buffer.len();
+
+        hash_map.entry(c).and_modify(|e| *e = *e + 1).or_insert(1);
+        let oldest_char = buffer[store_idx];
+        buffer[store_idx] = c;
+        let oldest_char_entry = hash_map.entry(oldest_char).and_modify(|e| *e = *e - 1);
+        let oldest_char_count = match oldest_char_entry {
+            std::collections::hash_map::Entry::Occupied(e) => *e.get(),
+            _ => 0,
+        };
+
+        if oldest_char_count == 0 {
+            hash_map.remove(&oldest_char);
+        }
+
+        if idx >= buffer.len() - 1 && buffer.len() == hash_map.len() {
+            return Some(idx + 1);
+        }
+
+        None
     }
 
-    for (idx, c) in data.char_indices().skip(4) {
-        let store_idx = idx % char_buffer.len();
+    for (idx, c) in data.char_indices() {
+        if part1_solution.is_none() {
+            part1_solution = find_first_all_different_chars(
+                idx,
+                c,
+                &mut start_of_packet_buffer,
+                &mut start_of_packet_hash_map,
+            );
+        }
+        if part2_solution.is_none() {
+            part2_solution = find_first_all_different_chars(
+                idx,
+                c,
+                &mut start_of_message_buffer,
+                &mut start_of_message_hash_map,
+            );
+        }
 
-        char_buffer[store_idx] = c;
-        hash_set.clear();
-        hash_set.extend(char_buffer.iter());
-
-        if hash_set.len() == char_buffer.len() {
-            println!("Part 1: {}", idx + 1);
+        if part1_solution.is_some() && part2_solution.is_some() {
             break;
         }
     }
+
+    println!("Part 1: {}", part1_solution.unwrap());
+    println!("Part 2: {}", part2_solution.unwrap());
 }
