@@ -75,7 +75,7 @@ pub fn day_01() {
     let mut max_heap = std::collections::BinaryHeap::new();
 
     for elf_data in data_per_elf {
-        let elf_data_as_lines = elf_data.split("\n");
+        let elf_data_as_lines = elf_data.split('\n');
 
         let mut current_calories = 0u64;
 

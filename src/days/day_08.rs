@@ -84,7 +84,7 @@ use super::load_file;
 /// Consider each tree on your map. What is the highest scenic score possible for any tree?
 pub fn day_08() {
     let data = load_file(8);
-    let mut data_as_lines = data.trim().split("\n").peekable();
+    let mut data_as_lines = data.trim().split('\n').peekable();
 
     let line_len = data_as_lines.peek().unwrap().len();
     let line_count = data_as_lines.clone().count();
@@ -112,7 +112,7 @@ pub fn day_08() {
             .for_each(|(visibility, &tree_height)| {
                 if tree_height > must_be_higher_to_be_seen_from_left {
                     must_be_higher_to_be_seen_from_left = tree_height;
-                    *visibility = *visibility | 1;
+                    *visibility |= 1;
                 }
             });
         visibility_line[0] |= 1;
@@ -126,12 +126,12 @@ pub fn day_08() {
             .for_each(|(visibility, &tree_height)| {
                 if tree_height > must_be_higher_to_be_seen_from_right {
                     must_be_higher_to_be_seen_from_right = tree_height;
-                    *visibility = *visibility | 1;
+                    *visibility |= 1;
                 }
             });
 
         let right_tree = visibility_line.last_mut().unwrap();
-        *right_tree = *right_tree | 1;
+        *right_tree |= 1;
     }
 
     for column_idx in 0..line_len {
@@ -141,14 +141,14 @@ pub fn day_08() {
 
         let mut must_be_higher_to_be_seen_from_top = *tree_column_iter.next().unwrap();
         let top_tree_visible = visibility_column_iter.next().unwrap();
-        *top_tree_visible = *top_tree_visible | 1;
+        *top_tree_visible |= 1;
 
         visibility_column_iter
             .zip(tree_column_iter)
             .for_each(|(visibility, &tree_height)| {
                 if tree_height > must_be_higher_to_be_seen_from_top {
                     must_be_higher_to_be_seen_from_top = tree_height;
-                    *visibility = *visibility | 1;
+                    *visibility |= 1;
                 }
             });
 
@@ -161,14 +161,14 @@ pub fn day_08() {
 
         let mut must_be_higher_to_be_seen_from_bot = *tree_column_iter.next().unwrap();
         let bot_tree_visible = visibility_column_iter.next().unwrap();
-        *bot_tree_visible = *bot_tree_visible | 1;
+        *bot_tree_visible |= 1;
 
         visibility_column_iter
             .zip(tree_column_iter)
             .for_each(|(visibility, &tree_height)| {
                 if tree_height > must_be_higher_to_be_seen_from_bot {
                     must_be_higher_to_be_seen_from_bot = tree_height;
-                    *visibility = *visibility | 1;
+                    *visibility |= 1;
                 }
             });
     }
@@ -195,7 +195,7 @@ pub fn day_08() {
                 break;
             }
         }
-        *scenic_score = *scenic_score * right_viewing_distance;
+        *scenic_score *= right_viewing_distance;
 
         let mut left_viewing_distance = 0;
         let left_view_iter = forest
@@ -209,7 +209,7 @@ pub fn day_08() {
                 break;
             }
         }
-        *scenic_score = *scenic_score * left_viewing_distance;
+        *scenic_score *= left_viewing_distance;
 
         let mut bot_viewing_distance = 0;
         let bot_view_iter = forest.iter().skip(tree_idx).step_by(line_len).skip(1);
@@ -219,7 +219,7 @@ pub fn day_08() {
                 break;
             }
         }
-        *scenic_score = *scenic_score * bot_viewing_distance;
+        *scenic_score *= bot_viewing_distance;
 
         let mut top_viewing_distance = 0;
         let top_view_iter = forest
@@ -234,7 +234,7 @@ pub fn day_08() {
                 break;
             }
         }
-        *scenic_score = *scenic_score * top_viewing_distance;
+        *scenic_score *= top_viewing_distance;
     }
 
     let max_scenic_score = *scenic_score.iter().max().unwrap();

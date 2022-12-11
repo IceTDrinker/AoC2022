@@ -83,7 +83,7 @@ use super::load_file;
 pub fn day_03() {
     let data = load_file(3);
 
-    let data_as_lines = data.split("\n");
+    let data_as_lines = data.split('\n');
 
     let mut priorities_part_1 = 0u64;
     let mut priorities_part_2 = 0u64;
@@ -110,7 +110,7 @@ pub fn day_03() {
             let tmp_group_hash_set = std::collections::HashSet::from_iter(trimmed_line.chars());
             let intersection = group_hash_set.intersection(&tmp_group_hash_set);
             group_hash_set =
-                std::collections::HashSet::from_iter(intersection.into_iter().map(|&x| x));
+                std::collections::HashSet::from_iter(intersection.into_iter().copied());
         }
 
         if group_idx == 2 {

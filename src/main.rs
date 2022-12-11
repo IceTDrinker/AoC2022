@@ -20,10 +20,9 @@ fn main() {
         .parse()
         .expect("Expected an integer.");
 
-    let day_func = DAY_FUNCS.get(day_arg - 1).expect(&format!(
-        "Day argument out of range, max: {}",
-        DAY_FUNCS.len()
-    ));
+    let day_func = DAY_FUNCS
+        .get(day_arg - 1)
+        .unwrap_or_else(|| panic!("Day argument out of range, max: {}", DAY_FUNCS.len()));
 
     day_func()
 }

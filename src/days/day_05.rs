@@ -121,7 +121,7 @@ pub fn day_05() {
     let data = load_file(5);
     let (stock, instructions) = data.split_once("\n\n").unwrap();
 
-    let mut stock_as_lines: Vec<&str> = stock.split("\n").into_iter().collect();
+    let mut stock_as_lines: Vec<&str> = stock.split('\n').into_iter().collect();
     stock_as_lines.reverse();
     let stock_as_lines = stock_as_lines;
 
@@ -141,7 +141,7 @@ pub fn day_05() {
     let mut stacks_part1 = stacks.clone();
     let mut stacks_part2 = stacks;
 
-    for instruction in instructions.trim().split("\n").into_iter() {
+    for instruction in instructions.trim().split('\n') {
         let mut split_instruction = instruction
             .split_whitespace()
             .into_iter()
@@ -190,11 +190,11 @@ pub fn day_05() {
     for stack in stacks_part1 {
         print!("{}", stack.last().unwrap());
     }
-    print!("\n");
+    println!();
 
     print!("Part 2: ");
     for stack in stacks_part2 {
         print!("{}", stack.last().unwrap());
     }
-    print!("\n");
+    println!();
 }

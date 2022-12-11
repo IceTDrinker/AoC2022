@@ -84,10 +84,10 @@ pub fn day_06() {
     ) -> Option<usize> {
         let store_idx = idx % buffer.len();
 
-        hash_map.entry(c).and_modify(|e| *e = *e + 1).or_insert(1);
+        hash_map.entry(c).and_modify(|e| *e += 1).or_insert(1);
         let oldest_char = buffer[store_idx];
         buffer[store_idx] = c;
-        let oldest_char_entry = hash_map.entry(oldest_char).and_modify(|e| *e = *e - 1);
+        let oldest_char_entry = hash_map.entry(oldest_char).and_modify(|e| *e -= 1);
         let oldest_char_count = match oldest_char_entry {
             std::collections::hash_map::Entry::Occupied(e) => *e.get(),
             _ => 0,

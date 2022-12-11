@@ -241,13 +241,13 @@ pub fn day_07() {
 
     let mut location = Vec::<Rc<RefCell<FsElement>>>::new();
 
-    let mut lines: std::collections::VecDeque<_> = data.split("\n").into_iter().collect();
+    let mut lines: std::collections::VecDeque<_> = data.split('\n').into_iter().collect();
 
-    while lines.len() != 0 {
+    while !lines.is_empty() {
         let line = lines.pop_front().unwrap();
-        if line.starts_with("$") {
-            let (_, cmd) = line.split_once(" ").unwrap();
-            let mut cmd_with_args = cmd.split_whitespace().into_iter();
+        if line.starts_with('$') {
+            let (_, cmd) = line.split_once(' ').unwrap();
+            let mut cmd_with_args = cmd.split_whitespace();
 
             let cmd = cmd_with_args.next().unwrap();
 
@@ -274,9 +274,9 @@ pub fn day_07() {
                 "ls" => {
                     let mut curr_dir_rc = location.last().unwrap().borrow_mut();
                     let curr_dir = curr_dir_rc.as_mut_dir();
-                    while lines.len() != 0 && !lines.front().unwrap().starts_with("$") {
+                    while !lines.is_empty() && !lines.front().unwrap().starts_with('$') {
                         let line = lines.pop_front().unwrap();
-                        if let Some((dir_or_size, name)) = line.trim().split_once(" ") {
+                        if let Some((dir_or_size, name)) = line.trim().split_once(' ') {
                             let new_fs_element = match dir_or_size {
                                 "dir" => {
                                     let new_dir =

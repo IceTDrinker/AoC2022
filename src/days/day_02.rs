@@ -60,19 +60,19 @@ use super::load_file;
 /// everything goes exactly according to your strategy guide?
 pub fn day_02() {
     let data = load_file(2);
-    let data_as_lines = data.split("\n");
+    let data_as_lines = data.split('\n');
 
     let mut acc_part_1 = 0u64;
     let mut acc_part_2 = 0u64;
 
     data_as_lines.into_iter().for_each(|val| {
-        if let Some((elf_move, my_move)) = val.trim().split_once(" ") {
+        if let Some((elf_move, my_move)) = val.trim().split_once(' ') {
             match (elf_move, my_move) {
                 // Rock vs rock
                 // Rock, lose
                 ("A", "X") => {
                     acc_part_1 += 1 + 3;
-                    acc_part_2 += 3 + 0;
+                    acc_part_2 += 3; // + 0;
                 }
                 // Rock vs paper
                 // Rock, draw
@@ -83,14 +83,14 @@ pub fn day_02() {
                 // Rock vs scissors
                 // Rock, win
                 ("A", "Z") => {
-                    acc_part_1 += 3 + 0;
+                    acc_part_1 += 3; // + 0;
                     acc_part_2 += 2 + 6;
                 }
                 // Paper vs rock
                 // Paper, lose
                 ("B", "X") => {
-                    acc_part_1 += 1 + 0;
-                    acc_part_2 += 1 + 0;
+                    acc_part_1 += 1; // + 0;
+                    acc_part_2 += 1; // + 0;
                 }
                 // Paper vs paper
                 // Paper, draw
@@ -108,12 +108,12 @@ pub fn day_02() {
                 // Scissors, lose
                 ("C", "X") => {
                     acc_part_1 += 1 + 6;
-                    acc_part_2 += 2 + 0;
+                    acc_part_2 += 2; // + 0;
                 }
                 // Scissors vs paper
                 // Scissors, draw
                 ("C", "Y") => {
-                    acc_part_1 += 2 + 0;
+                    acc_part_1 += 2; // + 0;
                     acc_part_2 += 3 + 3;
                 }
                 // Scissors vs scissors

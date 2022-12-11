@@ -67,7 +67,7 @@ use super::load_file;
 /// In how many assignment pairs do the ranges overlap?
 pub fn day_04() {
     let data = load_file(4);
-    let data_as_lines = data.split("\n");
+    let data_as_lines = data.split('\n');
 
     let mut count_part_1 = 0u64;
     let mut count_part_2 = 0u64;
@@ -75,9 +75,9 @@ pub fn day_04() {
     for line in data_as_lines {
         let trimmed_line = line.trim();
 
-        if let Some((first_elf, second_elf)) = trimmed_line.split_once(",") {
-            let (min_first_elf, max_first_elf) = first_elf.split_once("-").unwrap();
-            let (min_second_elf, max_second_elf) = second_elf.split_once("-").unwrap();
+        if let Some((first_elf, second_elf)) = trimmed_line.split_once(',') {
+            let (min_first_elf, max_first_elf) = first_elf.split_once('-').unwrap();
+            let (min_second_elf, max_second_elf) = second_elf.split_once('-').unwrap();
 
             let min_first_elf: u64 = min_first_elf.parse().unwrap();
             let max_first_elf: u64 = max_first_elf.parse().unwrap();
