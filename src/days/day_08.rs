@@ -39,6 +39,49 @@ use super::load_file;
 /// visible in this arrangement.
 ///
 /// Consider your map; how many trees are visible from outside the grid?
+///
+/// --- Part Two ---
+/// Content with the amount of tree cover available, the Elves just need to know the best spot to
+/// build their tree house: they would like to be able to see a lot of trees.
+///
+/// To measure the viewing distance from a given tree, look up, down, left, and right from that
+/// tree; stop if you reach an edge or at the first tree that is the same height or taller than the
+/// tree under consideration. (If a tree is right on the edge, at least one of its viewing distances
+/// will be zero.)
+///
+/// The Elves don't care about distant trees taller than those found by the rules above; the
+/// proposed tree house has large eaves to keep it dry, so they wouldn't be able to see higher than
+/// the tree house anyway.
+///
+/// In the example above, consider the middle 5 in the second row:
+///
+/// 30373
+/// 25512
+/// 65332
+/// 33549
+/// 35390
+/// Looking up, its view is not blocked; it can see 1 tree (of height 3).
+/// Looking left, its view is blocked immediately; it can see only 1 tree (of height 5, right next
+/// to it). Looking right, its view is not blocked; it can see 2 trees.
+/// Looking down, its view is blocked eventually; it can see 2 trees (one of height 3, then the tree
+/// of height 5 that blocks its view). A tree's scenic score is found by multiplying together its
+/// viewing distance in each of the four directions. For this tree, this is 4 (found by multiplying
+/// 1 * 1 * 2 * 2).
+///
+/// However, you can do even better: consider the tree of height 5 in the middle of the fourth row:
+///
+/// 30373
+/// 25512
+/// 65332
+/// 33549
+/// 35390
+/// Looking up, its view is blocked at 2 trees (by another tree with a height of 5).
+/// Looking left, its view is not blocked; it can see 2 trees.
+/// Looking down, its view is also not blocked; it can see 1 tree.
+/// Looking right, its view is blocked at 2 trees (by a massive tree of height 9).
+/// This tree's scenic score is 8 (2 * 2 * 1 * 2); this is the ideal spot for the tree house.
+///
+/// Consider each tree on your map. What is the highest scenic score possible for any tree?
 pub fn day_08() {
     let data = load_file(8);
     let mut data_as_lines = data.trim().split("\n").peekable();
@@ -53,6 +96,8 @@ pub fn day_08() {
             .zip(line.chars())
             .for_each(|(dst, src)| *dst = src.to_digit(10).unwrap());
     }
+
+    let forest = forest;
 
     let mut visible_forest = vec![0u32; line_len * line_count];
 
@@ -131,4 +176,68 @@ pub fn day_08() {
     let visible_tree_count: u32 = visible_forest.iter().sum();
 
     println!("Part 1: {visible_tree_count}");
+
+    let mut scenic_score = vec![1u32; forest.len()];
+
+    for ((tree_idx, &tree_height), scenic_score) in
+        forest.iter().enumerate().zip(scenic_score.iter_mut())
+    {
+        let column_idx = tree_idx % line_len;
+
+        let mut right_viewing_distance = 0;
+        let right_view_iter = forest
+            .iter()
+            .skip(tree_idx + 1)
+            .take(line_len - (column_idx + 1));
+        for &other_tree_height in right_view_iter {
+            right_viewing_distance += 1;
+            if tree_height <= other_tree_height {
+                break;
+            }
+        }
+        *scenic_score = *scenic_score * right_viewing_distance;
+
+        let mut left_viewing_distance = 0;
+        let left_view_iter = forest
+            .iter()
+            .rev()
+            .skip(forest.len() - tree_idx)
+            .take(column_idx);
+        for &other_tree_height in left_view_iter {
+            left_viewing_distance += 1;
+            if tree_height <= other_tree_height {
+                break;
+            }
+        }
+        *scenic_score = *scenic_score * left_viewing_distance;
+
+        let mut bot_viewing_distance = 0;
+        let bot_view_iter = forest.iter().skip(tree_idx).step_by(line_len).skip(1);
+        for &other_tree_height in bot_view_iter {
+            bot_viewing_distance += 1;
+            if tree_height <= other_tree_height {
+                break;
+            }
+        }
+        *scenic_score = *scenic_score * bot_viewing_distance;
+
+        let mut top_viewing_distance = 0;
+        let top_view_iter = forest
+            .iter()
+            .rev()
+            .skip(forest.len() - (tree_idx + 1))
+            .step_by(line_len)
+            .skip(1);
+        for &other_tree_height in top_view_iter {
+            top_viewing_distance += 1;
+            if tree_height <= other_tree_height {
+                break;
+            }
+        }
+        *scenic_score = *scenic_score * top_viewing_distance;
+    }
+
+    let max_scenic_score = *scenic_score.iter().max().unwrap();
+
+    println!("Part 2: {max_scenic_score}");
 }
