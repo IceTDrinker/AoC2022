@@ -1,6 +1,6 @@
 mod days;
 
-const DAY_FUNCS: [fn() -> (); 10] = [
+const DAY_FUNCS: [fn() -> (); 11] = [
     days::day_01::day_01,
     days::day_02::day_02,
     days::day_03::day_03,
@@ -11,6 +11,7 @@ const DAY_FUNCS: [fn() -> (); 10] = [
     days::day_08::day_08,
     days::day_09::day_09,
     days::day_10::day_10,
+    days::day_11::day_11,
 ];
 
 fn main() {
