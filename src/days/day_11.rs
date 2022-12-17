@@ -231,6 +231,98 @@ use super::load_file;
 ///
 /// Figure out which monkeys to chase by counting how many items they inspect over 20 rounds. What
 /// is the level of monkey business after 20 rounds of stuff-slinging simian shenanigans?
+///
+/// --- Part Two ---
+/// You're worried you might not ever get your items back. So worried, in fact, that your relief
+/// that a monkey's inspection didn't damage an item no longer causes your worry level to be divided
+/// by three.
+///
+/// Unfortunately, that relief was all that was keeping your worry levels from reaching ridiculous
+/// levels. You'll need to find another way to keep your worry levels manageable.
+///
+/// At this rate, you might be putting up with these monkeys for a very long time - possibly 10000
+/// rounds!
+///
+/// With these new rules, you can still figure out the monkey business after 10000 rounds. Using the
+/// same example above:
+///
+/// == After round 1 ==
+/// Monkey 0 inspected items 2 times.
+/// Monkey 1 inspected items 4 times.
+/// Monkey 2 inspected items 3 times.
+/// Monkey 3 inspected items 6 times.
+///
+/// == After round 20 ==
+/// Monkey 0 inspected items 99 times.
+/// Monkey 1 inspected items 97 times.
+/// Monkey 2 inspected items 8 times.
+/// Monkey 3 inspected items 103 times.
+///
+/// == After round 1000 ==
+/// Monkey 0 inspected items 5204 times.
+/// Monkey 1 inspected items 4792 times.
+/// Monkey 2 inspected items 199 times.
+/// Monkey 3 inspected items 5192 times.
+///
+/// == After round 2000 ==
+/// Monkey 0 inspected items 10419 times.
+/// Monkey 1 inspected items 9577 times.
+/// Monkey 2 inspected items 392 times.
+/// Monkey 3 inspected items 10391 times.
+///
+/// == After round 3000 ==
+/// Monkey 0 inspected items 15638 times.
+/// Monkey 1 inspected items 14358 times.
+/// Monkey 2 inspected items 587 times.
+/// Monkey 3 inspected items 15593 times.
+///
+/// == After round 4000 ==
+/// Monkey 0 inspected items 20858 times.
+/// Monkey 1 inspected items 19138 times.
+/// Monkey 2 inspected items 780 times.
+/// Monkey 3 inspected items 20797 times.
+///
+/// == After round 5000 ==
+/// Monkey 0 inspected items 26075 times.
+/// Monkey 1 inspected items 23921 times.
+/// Monkey 2 inspected items 974 times.
+/// Monkey 3 inspected items 26000 times.
+///
+/// == After round 6000 ==
+/// Monkey 0 inspected items 31294 times.
+/// Monkey 1 inspected items 28702 times.
+/// Monkey 2 inspected items 1165 times.
+/// Monkey 3 inspected items 31204 times.
+///
+/// == After round 7000 ==
+/// Monkey 0 inspected items 36508 times.
+/// Monkey 1 inspected items 33488 times.
+/// Monkey 2 inspected items 1360 times.
+/// Monkey 3 inspected items 36400 times.
+///
+/// == After round 8000 ==
+/// Monkey 0 inspected items 41728 times.
+/// Monkey 1 inspected items 38268 times.
+/// Monkey 2 inspected items 1553 times.
+/// Monkey 3 inspected items 41606 times.
+///
+/// == After round 9000 ==
+/// Monkey 0 inspected items 46945 times.
+/// Monkey 1 inspected items 43051 times.
+/// Monkey 2 inspected items 1746 times.
+/// Monkey 3 inspected items 46807 times.
+///
+/// == After round 10000 ==
+/// Monkey 0 inspected items 52166 times.
+/// Monkey 1 inspected items 47830 times.
+/// Monkey 2 inspected items 1938 times.
+/// Monkey 3 inspected items 52013 times.
+/// After 10000 rounds, the two most active monkeys inspected items 52166 and 52013 times.
+/// Multiplying these together, the level of monkey business in this situation is now 2713310158.
+///
+/// Worry levels are no longer divided by three after each item is inspected; you'll need to find
+/// another way to keep your worry levels manageable. Starting again from the initial state in your
+/// puzzle input, what is the level of monkey business after 10000 rounds?
 pub fn day_11() {
     let data = load_file(11);
 
@@ -238,11 +330,11 @@ pub fn day_11() {
 
     let monkey_count = data_by_monkey.clone().count();
 
-    let mut monkeys_objects = vec![std::collections::VecDeque::new(); monkey_count];
+    let mut monkeys_objects_part1 = vec![std::collections::VecDeque::new(); monkey_count];
 
     struct MonkeyCircuit {
-        operation: Box<dyn Fn(u32) -> u32>,
-        divisible_by: u32,
+        operation: Box<dyn Fn(u64) -> u64>,
+        divisible_by: u64,
         monkey_if_true: usize,
         monkey_if_false: usize,
     }
@@ -255,8 +347,8 @@ pub fn day_11() {
 
     impl MonkeyCircuit {
         pub fn new(
-            operation: Box<dyn Fn(u32) -> u32>,
-            divisible_by: u32,
+            operation: Box<dyn Fn(u64) -> u64>,
+            divisible_by: u64,
             monkey_if_true: usize,
             monkey_if_false: usize,
         ) -> Self {
@@ -268,7 +360,7 @@ pub fn day_11() {
             }
         }
 
-        pub fn process_monkey_brain(&self, worry_level: u32) -> (usize, u32) {
+        pub fn process_monkey_brain_part1(&self, worry_level: u64) -> (usize, u64) {
             vprint!("  Monkey inspects an item with a worry level of {worry_level}.");
             vprint!("    ...");
             let new_worry_level = self.operation.as_ref()(worry_level) / 3;
@@ -277,7 +369,31 @@ pub fn day_11() {
             );
 
             if new_worry_level % self.divisible_by == 0 {
-                vprint!("    Current worry level is divisible by {}.", self.divisible_by);
+                vprint!(
+                    "    Current worry level is divisible by {}.",
+                    self.divisible_by
+                );
+                return (self.monkey_if_true, new_worry_level);
+            }
+
+            vprint!(
+                "    Current worry level is not divisible by {}.",
+                self.divisible_by
+            );
+
+            (self.monkey_if_false, new_worry_level)
+        }
+
+        pub fn process_monkey_brain_part2(&self, worry_level: u64) -> (usize, u64) {
+            vprint!("  Monkey inspects an item with a worry level of {worry_level}.");
+            vprint!("    ...");
+            let new_worry_level = self.operation.as_ref()(worry_level);
+
+            if new_worry_level % self.divisible_by == 0 {
+                vprint!(
+                    "    Current worry level is divisible by {}.",
+                    self.divisible_by
+                );
                 return (self.monkey_if_true, new_worry_level);
             }
 
@@ -293,7 +409,7 @@ pub fn day_11() {
     impl std::default::Default for MonkeyCircuit {
         fn default() -> Self {
             MonkeyCircuit {
-                operation: Box::new(|_: u32| 0u32),
+                operation: Box::new(|_: u64| 0u64),
                 divisible_by: 0,
                 monkey_if_true: 0,
                 monkey_if_false: 0,
@@ -307,7 +423,38 @@ pub fn day_11() {
         monkey_circuits.push(Default::default());
     }
 
-    let mut monkey_cumulative_objects = vec![0usize; monkey_count];
+    let mut monkey_cumulative_objects_part1 = vec![0usize; monkey_count];
+
+    // For part 2 the squaring makes using big integers is impossible, all the divisors are
+    // conveniently prime numbers, computing their products and keeping only the modulus allows to
+    // perform the divisibility test while keeping very small integers. If the divisors were not
+    // prime we would have needed to find the lowest common multiple of all divisors via a prime
+    // factor decomposition.
+    //
+    // The math property that will be useful (all variables used here are integers):
+    //
+    // if a == b mod c then there exists k such that a = kc + b
+    //
+    // if a == b mod c and d == e mod c then a + d == b + e mod c, i.e. we can add an integer to
+    // another and the resulting modulus is the sum of their moduli mod c, so monkeys can add values
+    // and the modulus will contain the divisibility information. Same goes for multiplication,
+    // which can be seen as a series of additions.
+    //
+    // Proof for addition:
+    // if a == b mod c then there exists k such that a = kc + b
+    // if e == d mod c then there exists l such that d = lc + e
+    // a + d = (k + l) c + b + e, or a + d == b + e mod c.
+    //
+    // Finally if b divides a, i.e. a == 0 mod b and c divides b i.e. b == 0 mod c then c divides a
+    // or a == 0 mod c
+    //
+    // c divides b means there exists a k such that b = kc
+    // b divides a means there exists an l such that a = lb <=> a = klc <=> a = mc where m = kl
+    //
+    // So we can compute the modulus by the products of divisors and as every monkey's dvisior
+    // divides the product of divisor we can just store the modulus of the worry levels to
+    // perform the divisibility test for each monkey.
+    let mut divisor_product: u64 = 1;
 
     for monkey_data in data_by_monkey {
         let mut monkey_data_as_lines = monkey_data.split('\n');
@@ -319,7 +466,7 @@ pub fn day_11() {
         let (_, monkey_id_str) = monkey_id_str.split_once(' ').unwrap();
         let monkey_idx: usize = monkey_id_str.parse().unwrap();
 
-        let monkey_objects = &mut monkeys_objects[monkey_idx];
+        let monkey_objects = &mut monkeys_objects_part1[monkey_idx];
 
         let (_, monkey_objects_str) = monkey_data_as_lines
             .next()
@@ -328,7 +475,7 @@ pub fn day_11() {
             .unwrap();
         let monkey_objects_str = monkey_objects_str.trim().split(',');
         for monkey_object in monkey_objects_str {
-            let worry_level: u32 = monkey_object.trim().parse().unwrap();
+            let worry_level: u64 = monkey_object.trim().parse().unwrap();
             monkey_objects.push_back(worry_level);
         }
 
@@ -338,13 +485,13 @@ pub fn day_11() {
             .split_once("new = old")
             .unwrap();
         let (op, value) = operation_str.trim().split_once(' ').unwrap();
-        let parsed_value: Result<u32, _> = value.parse();
+        let parsed_value: Result<u64, _> = value.parse();
 
-        let operation: Box<dyn Fn(u32) -> u32> = match (op, parsed_value) {
-            ("*", Ok(value)) => Box::new(move |x: u32| x * value),
-            ("+", Ok(value)) => Box::new(move |x: u32| x + value),
-            ("*", Err(_)) => Box::new(|x: u32| x * x),
-            ("+", Err(_)) => Box::new(|x: u32| x + x),
+        let operation: Box<dyn Fn(u64) -> u64> = match (op, parsed_value) {
+            ("*", Ok(value)) => Box::new(move |x: u64| x * value),
+            ("+", Ok(value)) => Box::new(move |x: u64| x + value),
+            ("*", Err(_)) => Box::new(|x: u64| x * x),
+            ("+", Err(_)) => Box::new(|x: u64| x + x),
             _ => unreachable!(),
         };
 
@@ -353,7 +500,9 @@ pub fn day_11() {
             .unwrap()
             .split_once("divisible by")
             .unwrap();
-        let divisible_by: u32 = divisible_by_str.trim().parse().unwrap();
+        let divisible_by: u64 = divisible_by_str.trim().parse().unwrap();
+
+        divisor_product *= divisible_by;
 
         let (_, monkey_if_true_str) = monkey_data_as_lines
             .next()
@@ -373,34 +522,69 @@ pub fn day_11() {
             MonkeyCircuit::new(operation, divisible_by, monkey_if_true, monkey_if_false);
     }
 
+    let mut monkeys_objects_part2 = monkeys_objects_part1.clone();
+    let mut monkey_cumulative_objects_part2 = monkey_cumulative_objects_part1.clone();
+
     for _ in 0..20 {
         for (src_monkey_idx, monkey) in monkey_circuits.iter().enumerate() {
             vprint!("Monkey {src_monkey_idx}:");
-            let actions: Vec<(usize, u32)> = monkeys_objects[src_monkey_idx]
+            let actions: Vec<(usize, u64)> = monkeys_objects_part1[src_monkey_idx]
                 .drain(..)
                 .map(|old_worry| {
-                    let res = monkey.process_monkey_brain(old_worry);
-                    monkey_cumulative_objects[src_monkey_idx] += 1;
+                    let res = monkey.process_monkey_brain_part1(old_worry);
+                    monkey_cumulative_objects_part1[src_monkey_idx] += 1;
                     vprint!(
                         "    Item with worry level {} is thrown to monkey {}.",
-                        res.1, res.0
+                        res.1,
+                        res.0
                     );
-                    res
+                    (res.0, res.1 % divisor_product)
                 })
                 .collect();
 
             for (dst_monkey, new_worry) in actions {
-                monkeys_objects[dst_monkey].push_back(new_worry);
+                monkeys_objects_part1[dst_monkey].push_back(new_worry);
+            }
+        }
+    }
+    vprint!("{monkey_cumulative_objects_part1:?}");
+
+    monkey_cumulative_objects_part1.sort();
+    monkey_cumulative_objects_part1.reverse();
+
+    let monkey_business = monkey_cumulative_objects_part1[0] * monkey_cumulative_objects_part1[1];
+
+    println!("Part 1: {monkey_business}");
+
+    for _ in 0..10000 {
+        for (src_monkey_idx, monkey) in monkey_circuits.iter().enumerate() {
+            vprint!("Monkey {src_monkey_idx}:");
+            let actions: Vec<(usize, u64)> = monkeys_objects_part2[src_monkey_idx]
+                .drain(..)
+                .map(|old_worry| {
+                    let res = monkey.process_monkey_brain_part2(old_worry);
+                    monkey_cumulative_objects_part2[src_monkey_idx] += 1;
+                    vprint!(
+                        "    Item with worry level {} is thrown to monkey {}.",
+                        res.1,
+                        res.0
+                    );
+                    (res.0, res.1 % divisor_product)
+                })
+                .collect();
+
+            for (dst_monkey, new_worry) in actions {
+                monkeys_objects_part2[dst_monkey].push_back(new_worry);
             }
         }
     }
 
-    vprint!("{monkey_cumulative_objects:?}");
+    vprint!("{monkey_cumulative_objects_part2:?}");
 
-    monkey_cumulative_objects.sort();
-    monkey_cumulative_objects.reverse();
+    monkey_cumulative_objects_part2.sort();
+    monkey_cumulative_objects_part2.reverse();
 
-    let monkey_business = monkey_cumulative_objects[0] * monkey_cumulative_objects[1];
+    let monkey_business = monkey_cumulative_objects_part2[0] * monkey_cumulative_objects_part2[1];
 
-    println!("Part 1: {monkey_business}");
+    println!("Part 2: {monkey_business}");
 }
