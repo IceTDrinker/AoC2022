@@ -126,6 +126,45 @@ use super::load_file;
 ///
 /// Determine which pairs of packets are already in the right order. What is the sum of the indices
 /// of those pairs?
+///
+/// --- Part Two ---
+/// Now, you just need to put all of the packets in the right order. Disregard the blank lines in
+/// your list of received packets.
+///
+/// The distress signal protocol also requires that you include two additional divider packets:
+///
+/// [[2]]
+/// [[6]]
+/// Using the same rules as before, organize all packets - the ones in your list of received packets
+/// as well as the two divider packets - into the correct order.
+///
+/// For the example above, the result of putting the packets in the correct order is:
+///
+/// []
+/// [[]]
+/// [[[]]]
+/// [1,1,3,1,1]
+/// [1,1,5,1,1]
+/// [[1],[2,3,4]]
+/// [1,[2,[3,[4,[5,6,0]]]],8,9]
+/// [1,[2,[3,[4,[5,6,7]]]],8,9]
+/// [[1],4]
+/// [[2]]
+/// [3]
+/// [[4,4],4,4]
+/// [[4,4],4,4,4]
+/// [[6]]
+/// [7,7,7]
+/// [7,7,7,7]
+/// [[8,7,6]]
+/// [9]
+/// Afterward, locate the divider packets. To find the decoder key for this distress signal, you
+/// need to determine the indices of the two divider packets and multiply them together. (The first
+/// packet is at index 1, the second packet is at index 2, and so on.) In this example, the divider
+/// packets are 10th and 14th, and so the decoder key is 140.
+///
+/// Organize all of the packets into the correct order. What is the decoder key for the distress
+/// signal?
 pub fn day_13() {
     let data = load_file(13);
 
@@ -133,7 +172,7 @@ pub fn day_13() {
 
     use std::str::FromStr;
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     enum MixedItem {
         Integer(u32),
         IntergerList(Vec<u32>),
@@ -279,11 +318,19 @@ pub fn day_13() {
 
     let mut ordered_pair_index_sum = 0;
 
+    let first_divider = MixedItem::from_str("[[2]]").unwrap();
+    let second_divider = MixedItem::from_str("[[6]]").unwrap();
+
+    let mut all_packets: Vec<MixedItem> = vec![first_divider.clone(), second_divider.clone()];
+
     for (pair_idx, packet_pair_str) in packet_pairs_str.enumerate() {
         let (first_packet, second_packet) = packet_pair_str.trim().split_once('\n').unwrap();
 
         let first_packet: MixedItem = first_packet.parse().unwrap();
         let second_packet: MixedItem = second_packet.parse().unwrap();
+
+        all_packets.push(first_packet.clone());
+        all_packets.push(second_packet.clone());
 
         let cmp = cmp_mixed_item(&first_packet, &second_packet);
 
@@ -292,5 +339,18 @@ pub fn day_13() {
         }
     }
 
+    all_packets.sort_by(cmp_mixed_item);
+
+    let decoder_key = all_packets.iter().enumerate().fold(1, |acc, (idx, x)| {
+        if cmp_mixed_item(x, &first_divider) == Ordering::Equal
+            || cmp_mixed_item(x, &second_divider) == Ordering::Equal
+        {
+            acc * (idx + 1)
+        } else {
+            acc
+        }
+    });
+
     println!("Part 1: {ordered_pair_index_sum}");
+    println!("Part 2: {decoder_key}");
 }
