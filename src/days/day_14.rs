@@ -139,6 +139,48 @@ use super::load_file;
 /// ~..........
 /// Using your scan, simulate the falling sand. How many units of sand come to rest before sand
 /// starts flowing into the abyss below?
+///
+/// --- Part Two ---
+/// You realize you misread the scan. There isn't an endless void at the bottom of the scan -
+/// there's floor, and you're standing on it!
+///
+/// You don't have time to scan the floor, so assume the floor is an infinite horizontal line with a
+/// y coordinate equal to two plus the highest y coordinate of any point in your scan.
+///
+/// In the example above, the highest y coordinate of any point is 9, and so the floor is at y=11.
+/// (This is as if your scan contained one extra rock path like -infinity,11 -> infinity,11.) With
+/// the added floor, the example above now looks like this:
+///
+///         ...........+........
+///         ....................
+///         ....................
+///         ....................
+///         .........#...##.....
+///         .........#...#......
+///         .......###...#......
+///         .............#......
+///         .............#......
+///         .....#########......
+///         ....................
+/// <-- etc #################### etc -->
+/// To find somewhere safe to stand, you'll need to simulate falling sand until a unit of sand comes
+/// to rest at 500,0, blocking the source entirely and stopping the flow of sand into the cave. In
+/// the example above, the situation finally looks like this after 93 units of sand come to rest:
+///
+/// ............o............
+/// ...........ooo...........
+/// ..........ooooo..........
+/// .........ooooooo.........
+/// ........oo#ooo##o........
+/// .......ooo#ooo#ooo.......
+/// ......oo###ooo#oooo......
+/// .....oooo.oooo#ooooo.....
+/// ....oooooooooo#oooooo....
+/// ...ooo#########ooooooo...
+/// ..ooooo.......ooooooooo..
+/// #########################
+/// Using your scan, simulate the falling sand until the source of the sand becomes blocked. How
+/// many units of sand come to rest?
 pub fn day_14() {
     let data = load_file(14);
 
@@ -146,7 +188,7 @@ pub fn day_14() {
 
     use std::str::FromStr;
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     struct Pos {
         x: i32,
         y: i32,
@@ -230,6 +272,7 @@ pub fn day_14() {
     let h = max_y + 1;
 
     let mut cave = vec!['.'; (w * h).try_into().unwrap()];
+    let mut cave2 = std::collections::HashMap::<Pos, char>::new();
 
     rock_paths
         .iter_mut()
@@ -252,6 +295,7 @@ pub fn day_14() {
                 for _ in 0..=diff_y.abs() {
                     let cave_idx: usize = (x + y * w).try_into().unwrap();
                     cave[cave_idx] = '#';
+                    cave2.insert(Pos { x, y }, '#');
                     // let newline = ['\n'];
                     // let display: String = cave
                     //     .chunks(w.try_into().unwrap())
@@ -268,6 +312,7 @@ pub fn day_14() {
                 for _ in 0..=diff_x.abs() {
                     let cave_idx: usize = (x + y * w).try_into().unwrap();
                     cave[cave_idx] = '#';
+                    cave2.insert(Pos { x, y }, '#');
                     // let newline = ['\n'];
                     // let display: String = cave
                     //     .chunks(w.try_into().unwrap())
@@ -368,4 +413,88 @@ pub fn day_14() {
     }
 
     println!("Part 1: {sand_count}");
+
+    let mut sand_count = 0;
+
+    let h = h + 2;
+
+    loop {
+        let mut sand_pos = start;
+
+        loop {
+            // try to fall down
+            let next_position = Pos {
+                x: sand_pos.x,
+                y: sand_pos.y + 1,
+            };
+
+            match cave2.entry(next_position).or_insert_with(|| {
+                if next_position.y == h - 1 {
+                    '#'
+                } else {
+                    '.'
+                }
+            }) {
+                '.' => {
+                    sand_pos = next_position;
+                }
+                _ => {
+                    let next_position = Pos {
+                        x: sand_pos.x - 1,
+                        y: sand_pos.y + 1,
+                    };
+
+                    match cave2.entry(next_position).or_insert_with(|| {
+                        if next_position.y == h - 1 {
+                            '#'
+                        } else {
+                            '.'
+                        }
+                    }) {
+                        '.' => {
+                            sand_pos = next_position;
+                        }
+                        _ => {
+                            let next_position = Pos {
+                                x: sand_pos.x + 1,
+                                y: sand_pos.y + 1,
+                            };
+
+                            match cave2.entry(next_position).or_insert_with(|| {
+                                if next_position.y == h - 1 {
+                                    '#'
+                                } else {
+                                    '.'
+                                }
+                            }) {
+                                '.' => {
+                                    sand_pos = next_position;
+                                }
+                                _ => {
+                                    cave2.insert(sand_pos, 'o');
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // let newline = ['\n'];
+        // let display: String = cave2
+        //     .chunks(w.try_into().unwrap())
+        //     .flat_map(|x| x.iter().chain(newline.iter()))
+        //     .collect();
+
+        // println!("\n\n{display}\n\n");
+
+        sand_count += 1;
+
+        if sand_pos == start {
+            break;
+        }
+    }
+
+    println!("Part 2: {sand_count}");
 }
