@@ -44,6 +44,36 @@ use super::load_file;
 ///
 /// What is the fewest steps required to move from your current position to the location that should
 /// get the best signal?
+///
+/// --- Part Two ---
+/// As you walk up the hill, you suspect that the Elves will want to turn this into a hiking trail.
+/// The beginning isn't very scenic, though; perhaps you can find a better starting point.
+///
+/// To maximize exercise while hiking, the trail should start as low as possible: elevation a. The
+/// goal is still the square marked E. However, the trail should still be direct, taking the fewest
+/// steps to reach its goal. So, you'll need to find the shortest path from any square at elevation
+/// a to the square marked E.
+///
+/// Again consider the example from above:
+///
+/// Sabqponm
+/// abcryxxl
+/// accszExk
+/// acctuvwj
+/// abdefghi
+/// Now, there are six choices for starting position (five marked a, plus the square marked S that
+/// counts as being at elevation a). If you start at the bottom-left square, you can reach the goal
+/// most quickly:
+///
+/// ...v<<<<
+/// ...vv<<^
+/// ...v>E^^
+/// .>v>>>^^
+/// >^>>>>>^
+/// This path reaches the goal in only 29 steps, the fewest possible.
+///
+/// What is the fewest steps required to move starting from any square with elevation a to the
+/// location that should get the best signal?
 pub fn day_12() {
     let data = load_file(12);
 
@@ -58,7 +88,7 @@ pub fn day_12() {
         pub y: usize,
     }
 
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
 
     macro_rules! vprint {
         ($($x:tt)*) => { if VERBOSE { println!($($x)*); } }
@@ -130,7 +160,8 @@ pub fn day_12() {
 
             let elevation_diff = to_elevation - from_elevation;
 
-            elevation_diff <= 1
+            // Reversed when starting from the top
+            elevation_diff >= -1
         };
 
         let neighbours = neighbours
@@ -143,7 +174,7 @@ pub fn day_12() {
     };
 
     fn reconstruct_path(
-        came_from: &mut std::collections::HashMap<Pos, Pos>,
+        came_from: &std::collections::HashMap<Pos, Pos>,
         mut current: Pos,
     ) -> Vec<Pos> {
         let mut total_path = vec![current];
@@ -209,7 +240,7 @@ pub fn day_12() {
             vprint!("\n\n{display}\n\n");
 
             if current == goal {
-                return Some(reconstruct_path(&mut came_from, current));
+                return Some(reconstruct_path(&came_from, current));
             }
 
             open_set.remove(&current);
@@ -236,8 +267,20 @@ pub fn day_12() {
         None
     };
 
-    let result = a_star(start_pos, goal_pos).unwrap();
+    let result = a_star(goal_pos, start_pos).unwrap();
+
+    // Here we cheat, only starting positions that can work are the ones on the left
+    let part2_estimations: Vec<_> = (0..line_count)
+        .map(|y| a_star(goal_pos, Pos { x: 0, y }).unwrap())
+        .collect();
+
+    let best_path = part2_estimations
+        .into_iter()
+        .min_by(|x, y| x.len().cmp(&y.len()))
+        .unwrap();
 
     // -1 to remove starting node
-    println!("Part 1: {}", result.len() - 1)
+    println!("Part 1: {}", result.len() - 1);
+
+    println!("Part 2: {}", best_path.len() - 1);
 }
