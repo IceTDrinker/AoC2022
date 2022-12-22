@@ -257,15 +257,19 @@ pub fn day_16() {
     struct Valve {
         name: String,
         pressure_release_per_minute: u64,
-        tunnels_lead_to: Vec<String>,
+        tunnels_lead_to: HashMap<String, u64>,
     }
 
     impl Valve {
-        pub fn new(name: &str, pressure_release_per_minute: u64, tunnels: &[String]) -> Self {
+        pub fn new(
+            name: &str,
+            pressure_release_per_minute: u64,
+            tunnels: HashMap<String, u64>,
+        ) -> Self {
             Self {
                 name: name.to_string(),
                 pressure_release_per_minute,
-                tunnels_lead_to: tunnels.to_owned(),
+                tunnels_lead_to: tunnels,
             }
         }
     }
@@ -288,22 +292,95 @@ pub fn day_16() {
             let name = name.trim();
             let flow: u64 = flow.parse()?;
             let (_, tunnels) = tunnels.split_once("valve").unwrap();
-            let tunnels: Vec<String> = tunnels
+            let tunnels: HashMap<String, u64> = tunnels
                 .trim_start_matches('s')
                 .split(',')
                 .into_iter()
-                .map(|x| x.trim().to_string())
+                .map(|x| (x.trim().to_string(), 1))
                 .collect();
 
-            Ok(Valve::new(name, flow, &tunnels))
+            Ok(Valve::new(name, flow, tunnels))
         }
     }
 
     let mut all_valves = HashMap::new();
 
+    let mut idx_to_valve: Vec<String> = vec![];
+
     for valve_str in data.trim().split('\n') {
         let valve: Valve = valve_str.parse().unwrap();
+        idx_to_valve.push(valve.name.clone());
         all_valves.insert(valve.name.clone(), valve);
+    }
+
+    let valve_to_idx: HashMap<String, usize> = idx_to_valve
+        .iter()
+        .enumerate()
+        .map(|(idx, valve_name)| (valve_name.clone(), idx))
+        .collect();
+
+    let valve_count = valve_to_idx.len();
+
+    let mut adjacency_matrix = vec![vec![u64::MAX; valve_count]; valve_count];
+
+    for (src_valve_idx, src_valve_name) in idx_to_valve.iter().enumerate() {
+        let src_valve = all_valves.get(src_valve_name).unwrap();
+
+        for dst_valve_name in src_valve.tunnels_lead_to.keys() {
+            let &dst_valve_idx = valve_to_idx.get(dst_valve_name).unwrap();
+
+            adjacency_matrix[src_valve_idx][dst_valve_idx] = 1;
+            adjacency_matrix[dst_valve_idx][src_valve_idx] = 1;
+            adjacency_matrix[src_valve_idx][src_valve_idx] = 0;
+            adjacency_matrix[dst_valve_idx][dst_valve_idx] = 0;
+        }
+    }
+
+    // Floyd warshall
+    for k in 0..valve_count {
+        for i in 0..valve_count {
+            for j in 0..valve_count {
+                let w_ik = adjacency_matrix[i][k];
+                let w_kj = adjacency_matrix[k][j];
+                let w_ij = &mut adjacency_matrix[i][j];
+
+                if w_ik == u64::MAX || w_kj == u64::MAX {
+                    continue;
+                }
+
+                *w_ij = std::cmp::min(*w_ij, w_ik + w_kj);
+            }
+        }
+    }
+
+    {
+        let tmp_all_valves = all_valves.clone();
+
+        for valve in all_valves.values_mut() {
+            if valve.pressure_release_per_minute != 0 || valve.name == "AA" {
+                let &valve_idx = valve_to_idx.get(&valve.name).unwrap();
+
+                valve.tunnels_lead_to.clear();
+
+                let valve_adjacencies = &adjacency_matrix[valve_idx];
+
+                for (dst_idx, &distance) in valve_adjacencies.iter().enumerate() {
+                    if valve_idx == dst_idx {
+                        continue;
+                    }
+
+                    let dst_valve_name = &idx_to_valve[dst_idx];
+                    let dst_valve = tmp_all_valves.get(dst_valve_name).unwrap();
+                    if dst_valve.pressure_release_per_minute == 0 {
+                        continue;
+                    }
+
+                    valve
+                        .tunnels_lead_to
+                        .insert(dst_valve_name.clone(), distance);
+                }
+            }
+        }
     }
 
     let mut non_zero_valves_sorted: Vec<_> = all_valves
@@ -325,17 +402,20 @@ pub fn day_16() {
     }
 
     impl ProblemSolutionPart1 {
-        pub fn is_complete(&self) -> bool {
-            self.current_time == TIME_LIMIT_PART1
+        pub fn is_complete(&self, time_limit: u64, non_zero_valves_sorted: &[&Valve]) -> bool {
+            assert!(self.current_time <= time_limit);
+            self.current_time == time_limit
+                || self.opened_valves.len() == non_zero_valves_sorted.len()
         }
 
         pub fn release_upper_bound(
             &self,
             all_valves: &HashMap<String, Valve>,
             non_zero_valves_sorted: &[&Valve],
+            time_limit: u64,
         ) -> u64 {
             let mut release_upper_bound = self.expected_release;
-            let mut remaining_time = TIME_LIMIT_PART1 - self.current_time;
+            let mut remaining_time = time_limit - self.current_time;
 
             let current_valve = all_valves.get(&self.current_valve).unwrap();
             if current_valve.pressure_release_per_minute != 0
@@ -360,329 +440,162 @@ pub fn day_16() {
         }
     }
 
-    let mut solutions_queue_part1 = VecDeque::new();
-    solutions_queue_part1.push_back(ProblemSolutionPart1 {
-        current_valve: "AA".to_string(),
-        expected_release: 0,
-        current_time: 0,
-        opened_valves: HashSet::new(),
-    });
+    fn solve(
+        time_limit: u64,
+        all_valves: &HashMap<String, Valve>,
+        non_zero_valves_sorted: &[&Valve],
+    ) -> u64 {
+        let mut solutions_queue = VecDeque::new();
+        solutions_queue.push_back(ProblemSolutionPart1 {
+            current_valve: "AA".to_string(),
+            expected_release: 0,
+            current_time: 0,
+            opened_valves: HashSet::new(),
+        });
 
-    let mut best_complete_release_part1 = 0;
+        let mut best_complete_release = 0;
 
-    while let Some(current_solution) = solutions_queue_part1.pop_front() {
-        if current_solution.is_complete() {
-            best_complete_release_part1 = std::cmp::max(
-                best_complete_release_part1,
-                current_solution.expected_release,
-            );
-            continue;
-        }
-
-        let current_valve = all_valves.get(&current_solution.current_valve).unwrap();
-
-        if current_valve.pressure_release_per_minute != 0
-            && (current_solution.current_time < TIME_LIMIT_PART1 - 1)
-            && !current_solution.opened_valves.contains(&current_valve.name)
-        {
-            // +1 as we open the valve
-            let new_time = current_solution.current_time + 1;
-            let mut new_opened_valves = current_solution.opened_valves.clone();
-            new_opened_valves.insert(current_valve.name.clone());
-
-            let new_release = current_solution.expected_release
-                + (TIME_LIMIT_PART1 - new_time) * current_valve.pressure_release_per_minute;
-            let open_valve_solution = ProblemSolutionPart1 {
-                current_valve: current_solution.current_valve.clone(),
-                expected_release: new_release,
-                current_time: new_time,
-                opened_valves: new_opened_valves,
-            };
-
-            let release_upper_bound =
-                open_valve_solution.release_upper_bound(&all_valves, &non_zero_valves_sorted);
-
-            if release_upper_bound < best_complete_release_part1 {
+        while let Some(current_solution) = solutions_queue.pop_front() {
+            if current_solution.is_complete(time_limit, non_zero_valves_sorted) {
+                best_complete_release =
+                    std::cmp::max(best_complete_release, current_solution.expected_release);
                 continue;
             }
 
-            best_complete_release_part1 = std::cmp::max(
-                open_valve_solution.expected_release,
-                best_complete_release_part1,
-            );
+            let current_valve = all_valves.get(&current_solution.current_valve).unwrap();
 
-            if let Some(next_potential_solution) = solutions_queue_part1.front() {
-                if open_valve_solution.current_time >= next_potential_solution.current_time {
-                    solutions_queue_part1.push_front(open_valve_solution);
-                } else {
-                    solutions_queue_part1.push_back(open_valve_solution);
+            if current_valve.pressure_release_per_minute != 0
+                && (current_solution.current_time < time_limit - 1)
+                && !current_solution.opened_valves.contains(&current_valve.name)
+            {
+                // +1 as we open the valve
+                let new_time = current_solution.current_time + 1;
+                let mut new_opened_valves = current_solution.opened_valves.clone();
+                new_opened_valves.insert(current_valve.name.clone());
+
+                let new_release = current_solution.expected_release
+                    + (time_limit - new_time) * current_valve.pressure_release_per_minute;
+                let open_valve_solution = ProblemSolutionPart1 {
+                    current_valve: current_solution.current_valve.clone(),
+                    expected_release: new_release,
+                    current_time: new_time,
+                    opened_valves: new_opened_valves,
+                };
+
+                let release_upper_bound = open_valve_solution.release_upper_bound(
+                    all_valves,
+                    non_zero_valves_sorted,
+                    time_limit,
+                );
+
+                if release_upper_bound < best_complete_release {
+                    continue;
                 }
-            } else {
-                solutions_queue_part1.push_back(open_valve_solution);
+
+                best_complete_release =
+                    std::cmp::max(open_valve_solution.expected_release, best_complete_release);
+
+                if let Some(next_potential_solution) = solutions_queue.front() {
+                    if open_valve_solution.current_time >= next_potential_solution.current_time {
+                        solutions_queue.push_front(open_valve_solution);
+                    } else {
+                        solutions_queue.push_back(open_valve_solution);
+                    }
+                } else {
+                    solutions_queue.push_back(open_valve_solution);
+                }
+            }
+
+            for (destination_name, &distance) in current_valve.tunnels_lead_to.iter() {
+                if current_solution.opened_valves.contains(destination_name)
+                    || (time_limit - current_solution.current_time) < distance
+                    || !all_valves.contains_key(destination_name)
+                {
+                    continue;
+                }
+
+                let new_solution = ProblemSolutionPart1 {
+                    current_valve: destination_name.to_string(),
+                    expected_release: current_solution.expected_release,
+                    current_time: current_solution.current_time + distance,
+                    opened_valves: current_solution.opened_valves.clone(),
+                };
+
+                let release_upper_bound = new_solution.release_upper_bound(
+                    all_valves,
+                    non_zero_valves_sorted,
+                    time_limit,
+                );
+
+                if release_upper_bound < best_complete_release {
+                    continue;
+                }
+
+                best_complete_release =
+                    std::cmp::max(new_solution.expected_release, best_complete_release);
+
+                if let Some(next_potential_solution) = solutions_queue.front() {
+                    if new_solution.current_time >= next_potential_solution.current_time {
+                        solutions_queue.push_front(new_solution);
+                    } else {
+                        solutions_queue.push_back(new_solution);
+                    }
+                } else {
+                    solutions_queue.push_back(new_solution);
+                }
             }
         }
-
-        for destination_name in current_valve.tunnels_lead_to.iter() {
-            // +1 as we move once
-            let new_solution = ProblemSolutionPart1 {
-                current_valve: destination_name.to_string(),
-                expected_release: current_solution.expected_release,
-                current_time: current_solution.current_time + 1,
-                opened_valves: current_solution.opened_valves.clone(),
-            };
-
-            let release_upper_bound =
-                new_solution.release_upper_bound(&all_valves, &non_zero_valves_sorted);
-
-            if release_upper_bound < best_complete_release_part1 {
-                continue;
-            }
-
-            best_complete_release_part1 =
-                std::cmp::max(new_solution.expected_release, best_complete_release_part1);
-
-            if let Some(next_potential_solution) = solutions_queue_part1.front() {
-                if new_solution.expected_release >= next_potential_solution.expected_release {
-                    solutions_queue_part1.push_front(new_solution);
-                } else {
-                    solutions_queue_part1.push_back(new_solution);
-                }
-            } else {
-                solutions_queue_part1.push_back(new_solution);
-            }
-        }
+        best_complete_release
     }
+
+    let best_complete_release_part1 = solve(TIME_LIMIT_PART1, &all_valves, &non_zero_valves_sorted);
 
     println!("Part 1: {best_complete_release_part1}");
 
     const TIME_LIMIT_PART2: u64 = 26;
 
-    #[derive(PartialEq, Eq)]
-    struct ProblemSolutionPart2 {
-        pub current_valves: HashSet<String>,
-        pub expected_release: u64,
-        pub current_time: u64,
-        pub opened_valves: HashSet<String>,
+    let mut best_solution_per_subset: Vec<u64> =
+        Vec::with_capacity(2_usize.pow(non_zero_valves_sorted.len() as u32));
+
+    for selector in 0..2usize.pow(non_zero_valves_sorted.len() as u32) {
+        // println!("Selector: {selector}");
+        let mut subset: HashMap<String, Valve> = HashMap::new();
+        subset.insert("AA".to_string(), all_valves.get("AA").unwrap().clone());
+        for (valve_idx, &valve) in non_zero_valves_sorted.iter().enumerate() {
+            let bit_selector = 1 << valve_idx;
+
+            if (selector & bit_selector) >> valve_idx == 1 {
+                subset.insert(valve.name.clone(), valve.clone());
+            }
+        }
+
+        let mut subset_non_zero_valves_sorted: Vec<_> = subset
+            .iter()
+            .filter(|&x| x.1.pressure_release_per_minute != 0)
+            .map(|x| x.1)
+            .collect();
+        subset_non_zero_valves_sorted.sort_by_key(|x| x.pressure_release_per_minute);
+        subset_non_zero_valves_sorted.reverse();
+        let subset_non_zero_valves_sorted = subset_non_zero_valves_sorted;
+
+        let best_subset_solution = solve(TIME_LIMIT_PART2, &subset, &subset_non_zero_valves_sorted);
+        best_solution_per_subset.push(best_subset_solution);
     }
 
-    impl ProblemSolutionPart2 {
-        pub fn is_complete(&self, non_zero_valves_sorted: &[&Valve]) -> bool {
-            self.current_time == TIME_LIMIT_PART2
-                || self.opened_valves.len() == non_zero_valves_sorted.len()
-        }
+    let subset_count = best_solution_per_subset.len();
 
-        pub fn release_upper_bound(
-            &self,
-            all_valves: &HashMap<String, Valve>,
-            non_zero_valves_sorted: &[&Valve],
-        ) -> u64 {
-            let mut release_upper_bound = self.expected_release;
-            let mut remaining_time = TIME_LIMIT_PART2 - self.current_time;
+    let complementary_mask = subset_count - 1;
 
-            for valve_name in self.current_valves.iter() {
-                let current_valve = all_valves.get(valve_name).unwrap();
+    let mut part_2_solution = 0;
 
-                if current_valve.pressure_release_per_minute != 0
-                    && remaining_time > 1
-                    && !self.opened_valves.contains(&current_valve.name)
-                {
-                    release_upper_bound +=
-                        remaining_time * current_valve.pressure_release_per_minute;
-                }
-            }
+    for subset in 0..subset_count {
+        let complementary_subset = (subset ^ complementary_mask) % subset_count;
 
-            let mut opened_valve_count = 0;
-            for valve in non_zero_valves_sorted {
-                if remaining_time < 2 {
-                    break;
-                }
-
-                if !self.opened_valves.contains(&valve.name)
-                    && !self.current_valves.contains(&valve.name)
-                {
-                    if opened_valve_count == 0 {
-                        remaining_time -= 2;
-                        opened_valve_count += 1;
-                    } else if opened_valve_count == 1 {
-                        opened_valve_count = 0;
-                    }
-
-                    release_upper_bound += remaining_time * valve.pressure_release_per_minute;
-                }
-            }
-
-            release_upper_bound
-        }
+        part_2_solution = std::cmp::max(
+            part_2_solution,
+            best_solution_per_subset[subset] + best_solution_per_subset[complementary_subset],
+        );
     }
 
-    let mut solutions_queue_part2 = VecDeque::new();
-    solutions_queue_part2.push_back(ProblemSolutionPart2 {
-        current_valves: HashSet::from_iter(["AA".to_string()]),
-        expected_release: 0,
-        current_time: 0,
-        opened_valves: HashSet::new(),
-    });
-
-    let mut best_complete_release_part2 = 0;
-
-    while let Some(current_solution) = solutions_queue_part2.pop_front() {
-        // println!("Queue len: {}", solutions_queue_part2.len());
-
-        let release_upper_bound =
-            current_solution.release_upper_bound(&all_valves, &non_zero_valves_sorted);
-
-        if release_upper_bound < best_complete_release_part2 {
-            continue;
-        }
-
-        if current_solution.is_complete(&non_zero_valves_sorted) {
-            best_complete_release_part2 = std::cmp::max(
-                best_complete_release_part2,
-                current_solution.expected_release,
-            );
-            println!("New best release: {best_complete_release_part2}");
-            continue;
-        }
-
-        let mut current_valves_names_iter = current_solution.current_valves.iter();
-
-        let human_valve = current_valves_names_iter.next();
-        let elephant_valve = current_valves_names_iter.next();
-
-        let (human_valve, elephant_valve) = match (human_valve, elephant_valve) {
-            (Some(current_valve), None) => (current_valve.clone(), current_valve.clone()),
-            (Some(first), Some(second)) => (first.clone(), second.clone()),
-            _ => unreachable!(),
-        };
-
-        let human_valve = all_valves.get(&human_valve).unwrap();
-        let human_must_move = human_valve.pressure_release_per_minute == 0
-            || current_solution.opened_valves.contains(&human_valve.name);
-        let elephant_valve = all_valves.get(&elephant_valve).unwrap();
-        let elephant_must_move = elephant_valve.pressure_release_per_minute == 0
-            || current_solution
-                .opened_valves
-                .contains(&elephant_valve.name);
-
-        for (human_move, elephant_move) in
-            [(false, false), (true, false), (false, true), (true, true)]
-        {
-            // If both the human and the elephant don't move and are in the same room, skip the case
-            if (!human_move && !elephant_move && human_valve == elephant_valve)
-                || (!human_move && human_must_move)
-                || (!elephant_move && elephant_must_move)
-            {
-                continue;
-            }
-
-            let new_time = current_solution.current_time + 1;
-
-            let new_solutions = if !human_move && !elephant_move {
-                let mut opened_valves = current_solution.opened_valves.clone();
-                opened_valves.insert(human_valve.name.clone());
-                opened_valves.insert(elephant_valve.name.clone());
-
-                let mut new_release = current_solution.expected_release;
-
-                new_release += (TIME_LIMIT_PART2 - new_time)
-                    * (human_valve.pressure_release_per_minute
-                        + elephant_valve.pressure_release_per_minute);
-
-                vec![ProblemSolutionPart2 {
-                    current_valves: current_solution.current_valves.clone(),
-                    expected_release: new_release,
-                    current_time: new_time,
-                    opened_valves,
-                }]
-            } else if human_move != elephant_move {
-                let mut new_solutions: Vec<ProblemSolutionPart2> = vec![];
-
-                let (moving_valve, opening_valve) = if human_move {
-                    (human_valve, elephant_valve)
-                } else {
-                    (elephant_valve, human_valve)
-                };
-
-                let mut opened_valves = current_solution.opened_valves.clone();
-                opened_valves.insert(opening_valve.name.clone());
-
-                let mut new_release = current_solution.expected_release;
-
-                new_release +=
-                    (TIME_LIMIT_PART2 - new_time) * opening_valve.pressure_release_per_minute;
-
-                for dest_valve_name in &moving_valve.tunnels_lead_to {
-                    new_solutions.push(ProblemSolutionPart2 {
-                        current_valves: HashSet::from_iter([
-                            dest_valve_name.clone(),
-                            opening_valve.name.clone(),
-                        ]),
-                        expected_release: new_release,
-                        current_time: new_time,
-                        opened_valves: opened_valves.clone(),
-                    });
-                }
-
-                new_solutions
-            } else {
-                let mut new_solutions: Vec<ProblemSolutionPart2> = vec![];
-
-                for human_dest_valve_name in &human_valve.tunnels_lead_to {
-                    let human_dest_valve = all_valves.get(human_dest_valve_name).unwrap();
-                    for elephant_dest_valve_name in &elephant_valve.tunnels_lead_to {
-                        let elephant_dest_valve = all_valves.get(elephant_dest_valve_name).unwrap();
-
-                        if human_dest_valve.name == elephant_valve.name
-                            || elephant_dest_valve.name == human_valve.name
-                        {
-                            continue;
-                        }
-
-                        new_solutions.push(ProblemSolutionPart2 {
-                            current_valves: HashSet::from_iter([
-                                human_dest_valve.name.clone(),
-                                elephant_dest_valve.name.clone(),
-                            ]),
-                            expected_release: current_solution.expected_release,
-                            current_time: new_time,
-                            opened_valves: current_solution.opened_valves.clone(),
-                        });
-                    }
-                }
-
-                new_solutions
-            };
-
-            for new_solution in new_solutions {
-                let release_upper_bound =
-                    new_solution.release_upper_bound(&all_valves, &non_zero_valves_sorted);
-
-                if release_upper_bound < best_complete_release_part2 {
-                    continue;
-                }
-
-                best_complete_release_part2 =
-                    std::cmp::max(new_solution.expected_release, best_complete_release_part2);
-
-                if let Some(next_potential_solution) = solutions_queue_part2.front() {
-                    if new_solution.current_time >= next_potential_solution.current_time {
-                        solutions_queue_part2.push_front(new_solution);
-                    } else {
-                        solutions_queue_part2.push_back(new_solution);
-                    }
-                } else {
-                    solutions_queue_part2.push_back(new_solution);
-                }
-            }
-
-            // if solutions_queue_part2.len() >= 40_000_000 {
-            //     solutions_queue_part2.retain(|solution| {
-            //         solution.release_upper_bound(&all_valves, &non_zero_valves_sorted)
-            //             >= best_complete_release_part2
-            //     });
-            // }
-        }
-    }
-
-    println!("Part 2: {best_complete_release_part2}");
+    println!("Part 2: {part_2_solution}");
 }
