@@ -399,7 +399,7 @@ pub fn day_17() {
 
         fn content_iter(&self) -> Box<dyn Iterator<Item = (usize, usize, bool)>>;
 
-        fn move_down(&mut self, world: &[Vec<bool>]) -> bool {
+        fn move_down(&mut self, world: &[bool]) -> bool {
             if self.y() == 0 {
                 return false;
             }
@@ -417,7 +417,7 @@ pub fn day_17() {
                 let dst_y = new_y + diff_y;
 
                 // If something is present, we can't move
-                if world[dst_y][dst_x] {
+                if world[dst_y * WORLD_WIDTH + dst_x] {
                     return false;
                 }
             }
@@ -426,7 +426,7 @@ pub fn day_17() {
             true
         }
 
-        fn move_left(&mut self, world: &[Vec<bool>]) {
+        fn move_left(&mut self, world: &[bool]) {
             if self.x() == 0 {
                 return;
             }
@@ -444,7 +444,7 @@ pub fn day_17() {
                 let dst_y = self.y() + diff_y;
 
                 // If something is present, we can't move
-                if world[dst_y][dst_x] {
+                if world[dst_y * WORLD_WIDTH + dst_x] {
                     return;
                 }
             }
@@ -452,7 +452,7 @@ pub fn day_17() {
             self.set_x(new_x);
         }
 
-        fn move_right(&mut self, world: &[Vec<bool>]) {
+        fn move_right(&mut self, world: &[bool]) {
             if self.right() >= WORLD_WIDTH {
                 return;
             }
@@ -470,7 +470,7 @@ pub fn day_17() {
                 let dst_y = self.y() + diff_y;
 
                 // If something is present, we can't move
-                if world[dst_y][dst_x] {
+                if world[dst_y * WORLD_WIDTH + dst_x] {
                     return;
                 }
             }
@@ -478,7 +478,7 @@ pub fn day_17() {
             self.set_x(new_x);
         }
 
-        fn draw(&self, world: &mut [Vec<bool>]) {
+        fn draw(&self, world: &mut [bool]) {
             let content_iter = self.content_iter();
 
             for (diff_y, diff_x, is_present) in content_iter {
@@ -489,7 +489,7 @@ pub fn day_17() {
                 let dst_x = self.x() + diff_x;
                 let dst_y = self.y() + diff_y;
 
-                world[dst_y][dst_x] = true;
+                world[dst_y * WORLD_WIDTH + dst_x] = true;
             }
         }
     }
@@ -673,6 +673,67 @@ pub fn day_17() {
             ))
         }
 
+        fn move_down(&mut self, world: &[bool]) -> bool {
+            if self.y() != 0 {
+                let new_y = self.y() - 1;
+
+                let dst_x = self.x();
+
+                // If something is present, we can't move
+                if world[new_y * WORLD_WIDTH + dst_x] {
+                    return false;
+                }
+
+                self.set_y(new_y);
+                true
+            } else {
+                false
+            }
+        }
+
+        fn move_left(&mut self, world: &[bool]) {
+            if self.x() == 0 {
+                return;
+            }
+
+            let new_x = self.x() - 1;
+
+            let dst_y = self.y();
+
+            // If something is present, we can't move
+            if world[dst_y * WORLD_WIDTH + dst_x] {
+                return;
+            }
+
+            self.set_x(new_x);
+        }
+
+        // fn move_right(&mut self, world: &[Vec<bool>]) {
+        //     if self.right() >= WORLD_WIDTH {
+        //         return;
+        //     }
+
+        //     let new_x = self.x() + 1;
+
+        //     let content_iter = self.content_iter();
+
+        //     for (diff_y, diff_x, is_present) in content_iter {
+        //         if !is_present {
+        //             continue;
+        //         }
+
+        //         let dst_x = new_x + diff_x;
+        //         let dst_y = self.y() + diff_y;
+
+        //         // If something is present, we can't move
+        //         if world[dst_y][dst_x] {
+        //             return;
+        //         }
+        //     }
+
+        //     self.set_x(new_x);
+        // }
+
         fn set_x(&mut self, new_x: usize) {
             self.x = new_x
         }
@@ -726,6 +787,59 @@ pub fn day_17() {
             )
         }
 
+        fn move_left(&mut self, world: &[bool]) {
+            if self.x() == 0 {
+                return;
+            }
+
+            let new_x = self.x() - 1;
+
+            let y = self.y();
+
+            // If something is present, we can't move
+            if world[y * WORLD_WIDTH + new_x] || world[(y + 1) * WORLD_WIDTH + new_x] {
+                return;
+            }
+
+            self.set_x(new_x);
+        }
+
+        fn move_right(&mut self, world: &[bool]) {
+            if self.right() >= WORLD_WIDTH {
+                return;
+            }
+
+            let new_x = self.x() + 1;
+            let new_x_right = new_x + self.w() - 1;
+
+            let y = self.y();
+
+            // If something is present, we can't move
+            if world[y * WORLD_WIDTH + new_x_right] || world[(y + 1) * WORLD_WIDTH + new_x_right] {
+                return;
+            }
+
+            self.set_x(new_x);
+        }
+
+        fn move_down(&mut self, world: &[bool]) -> bool {
+            if self.y() == 0 {
+                return false;
+            }
+
+            let new_y = self.y() - 1;
+
+            let dst_x = self.x();
+
+            // If something is present, we can't move
+            if world[new_y * WORLD_WIDTH + dst_x] || world[new_y * WORLD_WIDTH + dst_x + 1] {
+                return false;
+            }
+
+            self.set_y(new_y);
+            true
+        }
+
         fn set_x(&mut self, new_x: usize) {
             self.x = new_x
         }
@@ -756,9 +870,19 @@ pub fn day_17() {
         mut jet_iterator: std::iter::Cycle<std::str::Chars>,
     ) -> usize {
         let mut lowest_empty_location = 0usize;
-        let mut world: Vec<Vec<bool>> = vec![];
+        let mut world: Vec<bool> = vec![];
+
+        const EMPTY_WORLD_LINE: [bool; WORLD_WIDTH] =
+            [false, false, false, false, false, false, false];
+
+        let start = std::time::Instant::now();
 
         for shape_index in 0..number_of_shapes {
+            if shape_index % 100_000 == 0 {
+                let mean_time_iteration =
+                    start.elapsed().as_secs_f64() / ((shape_index + 1) as f64);
+                println!("{shape_index}, mean iteration time (s) {mean_time_iteration}");
+            }
             // x, y represent the bottom left corner of the shape
             let shape_x = 2usize;
             let shape_y = lowest_empty_location + 3;
@@ -773,12 +897,12 @@ pub fn day_17() {
             };
             let current_shape = current_shape.as_mut();
 
-            let current_world_height = world.len();
+            let current_world_height = world.len() / WORLD_WIDTH;
             let top_y = current_shape.top();
 
             if top_y > current_world_height {
                 for _ in current_world_height..top_y {
-                    world.push(vec![false; WORLD_WIDTH]);
+                    world.extend(EMPTY_WORLD_LINE);
                 }
             }
 
@@ -843,4 +967,11 @@ pub fn day_17() {
     let part_1_solution = solve(2022, jet_iterator.clone());
 
     println!("Part 1: {part_1_solution}");
+
+    let part_2_solution = solve(1_000_000_000_000, jet_iterator.clone());
+
+    println!("Part 2: {part_2_solution}");
 }
+
+// 0.0000012612241419904137
+// 0.000001088170733108846
