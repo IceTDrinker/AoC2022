@@ -356,7 +356,7 @@ use super::load_file;
 pub fn day_17() {
     let data = load_file(17);
 
-    let jet_iterator = data.trim().chars().into_iter().cycle();
+    let jet_iterator = data.trim().char_indices().into_iter().cycle();
 
     const HORIZONTAL_LINE_CONTENT: [[bool; 4]; 1] = [[true, true, true, true]];
     const CROSS_CONTENT: [[bool; 3]; 3] = [
@@ -751,14 +751,24 @@ pub fn day_17() {
         }
     }
 
-    fn solve(
+    type StateChangeMap =
+        std::collections::HashMap<(usize, usize, usize, [usize; WORLD_WIDTH]), (usize, usize)>;
+
+    fn solve<const TRACK_CYCLES: bool>(
         number_of_shapes: usize,
-        mut jet_iterator: std::iter::Cycle<std::str::Chars>,
-    ) -> usize {
+        mut jet_iterator: std::iter::Cycle<std::str::CharIndices>,
+    ) -> (usize, StateChangeMap, (usize, usize, usize, usize)) {
         let mut lowest_empty_location = 0usize;
         let mut world: Vec<Vec<bool>> = vec![];
 
-        for shape_index in 0..number_of_shapes {
+        // (shape_idx % 5, jet_idx, height_change), (shape_idx, height)
+        let mut state_change: StateChangeMap = std::collections::HashMap::new();
+        let mut cycle_len = 0;
+        let mut cycle_start_idx = 0;
+        let mut cycle_height = 0;
+        let mut cycle_start_height = 0;
+
+        'outer: for shape_index in 0..number_of_shapes {
             // x, y represent the bottom left corner of the shape
             let shape_x = 2usize;
             let shape_y = lowest_empty_location + 3;
@@ -795,7 +805,7 @@ pub fn day_17() {
             // println!("{visual}");
 
             loop {
-                let next_jet = jet_iterator.next().unwrap();
+                let (jet_idx, next_jet) = jet_iterator.next().unwrap();
 
                 match next_jet {
                     '>' => current_shape.move_right(&world),
@@ -831,16 +841,92 @@ pub fn day_17() {
 
                 if !moved {
                     current_shape.draw(&mut world);
+                    let previous_height = lowest_empty_location;
                     lowest_empty_location = lowest_empty_location.max(current_shape.top());
+
+                    if TRACK_CYCLES {
+                        let mut depth_or_limit: [usize; WORLD_WIDTH] =
+                            [lowest_empty_location; WORLD_WIDTH];
+
+                        // Ugly, but I just want a solution
+                        'depth_record: for (depth_record_idx, depth_record) in
+                            depth_or_limit.iter_mut().enumerate()
+                        {
+                            for (depth_idx, row) in
+                                world[..lowest_empty_location].iter().rev().enumerate()
+                            {
+                                // Blocked
+                                if row[depth_record_idx] {
+                                    *depth_record = depth_idx;
+                                    continue 'depth_record;
+                                }
+                            }
+                        }
+
+                        let k = (
+                            shape_index % 5,
+                            jet_idx,
+                            lowest_empty_location - previous_height,
+                            depth_or_limit,
+                        );
+                        let v = (shape_index, lowest_empty_location);
+
+                        if let Some(previous) = state_change.insert(k, v) {
+                            cycle_len = v.0 - previous.0;
+                            cycle_start_idx = previous.0;
+                            cycle_height = v.1 - previous.1;
+                            cycle_start_height = previous.1;
+                            // println!("New: {v:?}");
+                            // println!("Previous: {previous:?}");
+                            break 'outer;
+                        }
+                    }
+
                     break;
                 }
             }
         }
 
-        lowest_empty_location
+        (
+            lowest_empty_location,
+            state_change,
+            (cycle_len, cycle_start_idx, cycle_start_height, cycle_height),
+        )
     }
 
-    let part_1_solution = solve(2022, jet_iterator.clone());
+    let (part_1_solution, _, _) = solve::<false>(2022, jet_iterator.clone());
 
     println!("Part 1: {part_1_solution}");
+
+    let (_, state_change, (cycle_len, cycle_start_idx, cycle_start_height, cycle_height)) =
+        solve::<true>(100_000_000, jet_iterator.clone());
+
+    // println!("len: {cycle_len}, start_idx: {cycle_start_idx}, height: {cycle_height}");
+
+    // let target = 2022;
+    let target = 1_000_000_000_000;
+
+    let start_rock_count = cycle_start_idx + 1;
+    let number_of_rocks_without_start = target - start_rock_count;
+    let number_of_cycles = number_of_rocks_without_start / cycle_len;
+    let remainder_rock = number_of_rocks_without_start % cycle_len;
+
+    // println!("remainder: {remainder_rock}");
+
+    let height_without_remainder = cycle_start_height + number_of_cycles * cycle_height;
+
+    // println!("Height without remainder: {height_without_remainder}");
+
+    let remainder_position_in_cycle = remainder_rock + cycle_start_idx;
+
+    let idx_height: std::collections::HashMap<usize, usize> = state_change.into_values().collect();
+
+    let remainder_height_diff =
+        idx_height.get(&remainder_position_in_cycle).unwrap() - cycle_start_height;
+
+    let part_2_solution = height_without_remainder + remainder_height_diff;
+
+    // println!("Height {height}");
+
+    println!("Part 2: {part_2_solution}");
 }
