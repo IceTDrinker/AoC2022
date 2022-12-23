@@ -70,21 +70,21 @@ pub fn day_18() {
 
     use std::collections::HashSet;
 
-    let space_samples: HashSet<Pos3D> = data
+    let lava_cubes: HashSet<Pos3D> = data
         .trim()
         .split('\n')
         .into_iter()
         .map(|x| Pos3D::from_str(x).unwrap())
         .collect();
 
-    let total_free_surface: u64 = space_samples.iter().fold(0, |mut acc, pos| {
+    let total_free_surface: u64 = lava_cubes.iter().fold(0, |mut acc, pos| {
         for diff_x in [-1, 1] {
             let neighbour = Pos3D {
                 x: pos.x + diff_x,
                 y: pos.y,
                 z: pos.z,
             };
-            if !space_samples.contains(&neighbour) {
+            if !lava_cubes.contains(&neighbour) {
                 acc += 1;
             }
         }
@@ -95,7 +95,7 @@ pub fn day_18() {
                 y: pos.y + diff_y,
                 z: pos.z,
             };
-            if !space_samples.contains(&neighbour) {
+            if !lava_cubes.contains(&neighbour) {
                 acc += 1;
             }
         }
@@ -106,7 +106,7 @@ pub fn day_18() {
                 y: pos.y,
                 z: pos.z + diff_z,
             };
-            if !space_samples.contains(&neighbour) {
+            if !lava_cubes.contains(&neighbour) {
                 acc += 1;
             }
         }
@@ -115,4 +115,77 @@ pub fn day_18() {
     });
 
     println!("Part 1: {total_free_surface}");
+
+    let (min_x, max_x, min_y, max_y, min_z, max_z) = lava_cubes.iter().fold(
+        (i32::MAX, i32::MIN, i32::MAX, i32::MIN, i32::MAX, i32::MIN),
+        |acc, pos| {
+            let (min_x, max_x, min_y, max_y, min_z, max_z) = acc;
+
+            (
+                min_x.min(pos.x),
+                max_x.max(pos.x),
+                min_y.min(pos.y),
+                max_y.max(pos.y),
+                min_z.min(pos.z),
+                max_z.max(pos.z),
+            )
+        },
+    );
+
+    // Safety
+    let world_min_x = min_x - 1;
+    let world_min_y = min_y - 1;
+    let world_min_z = min_z - 1;
+    let world_max_x = max_x + 1;
+    let world_max_y = max_y + 1;
+    let world_max_z = max_z + 1;
+
+    let world_l = world_max_x - world_min_x + 1;
+    let world_w = world_max_y - world_min_y + 1;
+    let world_h = world_max_z - world_min_z + 1;
+
+    let mut exterior_surface = 0;
+
+    let mut visited: HashSet<Pos3D> = HashSet::new();
+    let mut edge_cubes = std::collections::VecDeque::<Pos3D>::new();
+    edge_cubes.push_back(Pos3D { x: 0, y: 0, z: 0 });
+
+    while !edge_cubes.is_empty() {
+        let current_cube = edge_cubes.pop_front().unwrap();
+
+        if visited.contains(&current_cube) {
+            continue;
+        }
+
+        visited.insert(current_cube);
+
+        for (diff_x, diff_y, diff_z) in [
+            (-1, 0, 0),
+            (1, 0, 0),
+            (0, -1, 0),
+            (0, 1, 0),
+            (0, 0, -1),
+            (0, 0, 1),
+        ] {
+            let (x, y, z) = (
+                current_cube.x + diff_x,
+                current_cube.y + diff_y,
+                current_cube.z + diff_z,
+            );
+
+            if x < -1 || x >= world_l || y < -1 || y >= world_w || z < -1 || z >= world_h {
+                continue;
+            }
+
+            let neighbour = Pos3D { x, y, z };
+
+            if lava_cubes.contains(&neighbour) {
+                exterior_surface += 1;
+            } else {
+                edge_cubes.push_back(neighbour);
+            }
+        }
+    }
+
+    println!("Part 2: {exterior_surface}");
 }
