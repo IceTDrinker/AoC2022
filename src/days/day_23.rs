@@ -228,6 +228,26 @@ use super::load_file;
 ///
 /// Simulate the Elves' process and find the smallest rectangle that contains the Elves after 10
 /// rounds. How many empty ground tiles does that rectangle contain?
+///
+/// --- Part Two ---
+/// It seems you're on the right track. Finish simulating the process and figure out where the Elves
+/// need to go. How many rounds did you save them?
+///
+/// In the example above, the first round where no Elf moved was round 20:
+///
+/// .......#......
+/// ....#......#..
+/// ..#.....#.....
+/// ......#.......
+/// ...#....#.#..#
+/// #.............
+/// ....#.....#...
+/// ..#.....#.....
+/// ....#.#....#..
+/// .........#....
+/// ....#......#..
+/// .......#......
+/// Figure out where the Elves need to go. What is the number of the first round where no Elf moves?
 pub fn day_23() {
     let data = load_file(23);
 
@@ -299,16 +319,18 @@ pub fn day_23() {
 
     // debug_print(&elves);
 
+    let mut part_1_elves = elves.clone();
+
     for round_idx in 0..10 {
         let first_direction_idx = round_idx % MOVE_CYCLE.len();
 
-        for &(line, col) in elves.iter() {
+        for &(line, col) in part_1_elves.iter() {
             let mut should_move = false;
             for (diff_line, diff_col) in [
                 NORTH_WEST, NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST,
             ] {
                 let dst = (line + diff_line, col + diff_col);
-                if elves.get(&dst).is_some() {
+                if part_1_elves.get(&dst).is_some() {
                     should_move = true;
                     break;
                 }
@@ -325,7 +347,7 @@ pub fn day_23() {
                 let mut can_move = true;
                 for (diff_line, diff_col) in zone {
                     let check_location = (line + diff_line, col + diff_col);
-                    if elves.contains(&check_location) {
+                    if part_1_elves.contains(&check_location) {
                         can_move = false;
                         break;
                     }
@@ -348,16 +370,16 @@ pub fn day_23() {
                 continue;
             }
 
-            elves.remove(&elves_moving[0]);
-            elves.insert(planned_move);
+            part_1_elves.remove(&elves_moving[0]);
+            part_1_elves.insert(planned_move);
         }
-        // debug_print(&elves);
+        // debug_print(&part_1_elves);
     }
 
-    // debug_print(&elves);
+    // debug_print(&part_1_elves);
 
     let (min_line, max_line, min_col, max_col) =
-        elves
+        part_1_elves
             .iter()
             .fold((i64::MAX, i64::MIN, i64::MAX, i64::MIN), |acc, x| {
                 let (min_line, max_line, min_col, max_col) = acc;
@@ -379,4 +401,69 @@ pub fn day_23() {
     let free_terrain = terrain_area - elves.len() as i64;
 
     println!("Part 1: {free_terrain}");
+
+    let mut part_2_elves = elves;
+    let mut part_2_res = 0;
+
+    for round_idx in 0.. {
+        let first_direction_idx = round_idx % MOVE_CYCLE.len();
+
+        for &(line, col) in part_2_elves.iter() {
+            let mut should_move = false;
+            for (diff_line, diff_col) in [
+                NORTH_WEST, NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST,
+            ] {
+                let dst = (line + diff_line, col + diff_col);
+                if part_2_elves.get(&dst).is_some() {
+                    should_move = true;
+                    break;
+                }
+            }
+
+            if !should_move {
+                continue;
+            }
+
+            for move_diff in 0..4 {
+                let move_idx = (first_direction_idx + move_diff) % MOVE_CYCLE.len();
+
+                let (zone, direction) = MOVE_CYCLE[move_idx];
+                let mut can_move = true;
+                for (diff_line, diff_col) in zone {
+                    let check_location = (line + diff_line, col + diff_col);
+                    if part_2_elves.contains(&check_location) {
+                        can_move = false;
+                        break;
+                    }
+                }
+
+                if can_move {
+                    let move_location = (line + direction.0, col + direction.1);
+                    if let Some(planned_move) = planned_moves.get_mut(&move_location) {
+                        planned_move.push((line, col));
+                    } else {
+                        planned_moves.insert(move_location, vec![(line, col)]);
+                    }
+                    break;
+                }
+            }
+        }
+
+        if planned_moves.is_empty() {
+            part_2_res = round_idx + 1;
+            break;
+        }
+
+        for (planned_move, elves_moving) in planned_moves.drain() {
+            if elves_moving.len() > 1 {
+                continue;
+            }
+
+            part_2_elves.remove(&elves_moving[0]);
+            part_2_elves.insert(planned_move);
+        }
+        // debug_print(&part_2_elves);
+    }
+
+    println!("Part 2: {part_2_res}");
 }
